@@ -1,0 +1,20 @@
+# Separate LocalKnowledgeCard prototype (kept locally until migrated)
+/app.py
+/install.sh
+/test_app.py
+/systemd/
+
+# Reference checkouts and generated files
+/research/
+/__pycache__/
+*.py[cod]
+
+# Local/editor state and secrets
+.env
+.env.*
+!.env.example
+.venv/
+.vscode/
+.idea/
+*.log
+LAST_STATUS.txt
