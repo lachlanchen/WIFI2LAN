@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="480" viewBox="0 0 1600 480" role="img" aria-labelledby="title desc">
+  <title id="title">WIFI2LAN</title>
+  <desc id="desc">Wi-Fi flowing through a Raspberry Pi gateway to Ethernet devices</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071426"/>
+      <stop offset="0.52" stop-color="#0c2940"/>
+      <stop offset="1" stop-color="#064e4b"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.55" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#a3e635"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#9bdcf5" stroke-opacity=".055"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="480" rx="28" fill="url(#bg)"/>
+  <rect width="1600" height="480" rx="28" fill="url(#grid)"/>
+  <circle cx="1400" cy="54" r="235" fill="#2dd4bf" opacity=".06"/>
+  <circle cx="118" cy="452" r="250" fill="#38bdf8" opacity=".05"/>
+
+  <g fill="none" stroke="url(#flow)" stroke-linecap="round" filter="url(#glow)">
+    <path d="M95 190a125 125 0 0 1 184 0" stroke-width="12" opacity=".45"/>
+    <path d="M125 223a84 84 0 0 1 124 0" stroke-width="12" opacity=".72"/>
+    <path d="M157 256a42 42 0 0 1 61 0" stroke-width="12"/>
+  </g>
+  <circle cx="188" cy="286" r="11" fill="#38bdf8" filter="url(#glow)"/>
+  <path d="M280 240H390" stroke="#38bdf8" stroke-width="5" stroke-dasharray="10 13" opacity=".8"/>
+
+  <g transform="translate(390 125)">
+    <rect width="230" height="230" rx="34" fill="#0b2032" stroke="#2dd4bf" stroke-width="4"/>
+    <rect x="33" y="39" width="164" height="152" rx="22" fill="#102f3f" stroke="#99f6e4" stroke-opacity=".45"/>
+    <circle cx="78" cy="89" r="22" fill="#2dd4bf" opacity=".9"/>
+    <circle cx="153" cy="89" r="22" fill="#38bdf8" opacity=".9"/>
+    <path d="M74 147h83M96 126v42M136 126v42" stroke="#d9f99d" stroke-width="9" stroke-linecap="round"/>
+    <g stroke="#2dd4bf" stroke-width="5">
+      <path d="M-18 54H0M-18 92H0M-18 130H0M-18 168H0M230 54h18M230 92h18M230 130h18M230 168h18"/>
+    </g>
+  </g>
+  <path d="M640 240h126" stroke="#2dd4bf" stroke-width="5" stroke-dasharray="10 13" opacity=".85"/>
+
+  <g transform="translate(755 157)" fill="none" stroke="#a3e635" stroke-width="7" stroke-linejoin="round">
+    <path d="M12 28h118v126H12z"/>
+    <path d="M38 0v28M104 0v28M38 154v28M104 154v28"/>
+    <path d="M42 59h58v33H42zM42 111h58"/>
+  </g>
+  <path d="M914 240h100" stroke="#a3e635" stroke-width="5" stroke-dasharray="10 13" opacity=".85"/>
+  <g transform="translate(1015 171)" fill="none" stroke="#d9f99d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M0 41h72v70H0zM72 57h42v38H72"/>
+    <path d="M114 66h35v20M149 76h35M18 111v22M54 111v22"/>
+  </g>
+
+  <text x="95" y="90" fill="#f8fafc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="74" font-weight="800" letter-spacing="5">WIFI2LAN</text>
+  <text x="755" y="92" fill="#ccfbf1" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="30" font-weight="600">WI-FI IN · ETHERNET OUT</text>
+  <text x="755" y="132" fill="#94a3b8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22">Reversible routing for headless Raspberry Pis</text>
+  <g font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="2">
+    <text x="112" y="345" fill="#7dd3fc">WLAN</text>
+    <text x="446" y="398" fill="#5eead4">PI GATEWAY</text>
+    <text x="759" y="398" fill="#bef264">LAN</text>
+    <text x="1014" y="345" fill="#d9f99d">DOWNSTREAM</text>
+  </g>
+  <text x="95" y="432" fill="#64748b" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17">github.com/lachlanchen/WIFI2LAN</text>
+</svg>
