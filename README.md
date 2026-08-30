@@ -50,6 +50,10 @@ Internet / campus Wi-Fi
 | --- | --- | --- |
 | [`pi4-router/`](pi4-router/) | Install, verify, persist, and roll back the active Wi-Fi-to-LAN gateway | Raspberry Pi 4B, Raspberry Pi OS Buster |
 | [`pi5-client/`](pi5-client/) | Switch safely between LAN-client mode and the preserved `192.168.2.1` router mode | Raspberry Pi 5, Debian Bookworm |
+| [`windows/repair-wired-dhcp.ps1`](windows/repair-wired-dhcp.ps1) | Restore and verify automatic IPv4/DNS after temporary static access | Windows 10/11, elevated PowerShell |
+
+Windows wired-LAN recovery and the 2026-08-30 root-cause record are documented
+in [`docs/windows-wired-lan-incident-2026-08-30.md`](docs/windows-wired-lan-incident-2026-08-30.md).
 
 ## Pi 4B quick start
 
