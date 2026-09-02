@@ -49,7 +49,7 @@ Internet / campus Wi-Fi
 | Component | Purpose | Target |
 | --- | --- | --- |
 | [`pi4-router/`](pi4-router/) | Install, verify, persist, and roll back the active Wi-Fi-to-LAN gateway | Raspberry Pi 4B, Raspberry Pi OS Buster |
-| [`pi5-client/`](pi5-client/) | Switch safely between LAN-client mode and the preserved `192.168.2.1` router mode | Raspberry Pi 5, Debian Bookworm |
+| [`pi5-client/`](pi5-client/) | Switch safely between LAN-client mode and the preserved `192.168.2.1` router mode | Raspberry Pi 5, Raspberry Pi OS Bookworm/Trixie |
 | [`windows/repair-wired-dhcp.ps1`](windows/repair-wired-dhcp.ps1) | Restore and verify automatic IPv4/DNS after temporary static access | Windows 10/11, elevated PowerShell |
 
 Windows wired-LAN recovery and the 2026-08-30 root-cause record are documented
@@ -81,12 +81,17 @@ The Pi 5 mode switch deliberately keeps client and router roles mutually
 exclusive:
 
 ```bash
-sudo ./pi5-client/pi5-network-mode.sh status
-sudo ./pi5-client/pi5-network-mode.sh lan-client
-sudo ./pi5-client/pi5-network-mode.sh wifi-router
+sudo ./pi5-client/install-pi5-wifi-to-lan.sh
+sudo pi5-network-mode status
+sudo pi5-network-mode verify
+sudo pi5-network-mode arm
 ```
 
-See [`pi5-client/README.md`](pi5-client/README.md) for the recovery assumptions.
+After `arm`, unplug `eth0` from the main LAN for at least five seconds and then
+connect it only to the downstream device. Direct router selection requires the
+explicit `wifi-router --confirm-isolated` form while `eth0` is unplugged. See
+[`pi5-client/README.md`](pi5-client/README.md) for the cutover and recovery
+interlocks.
 
 ## Current verified deployment
 
