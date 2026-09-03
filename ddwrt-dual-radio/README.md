@@ -68,16 +68,33 @@ From this directory:
 ```
 
 `initialize-ddwrt-router.ps1` is the first-time wrapper. It checks the router
-identity through its LAN address, uses PuTTY Plink over Telnet only when SSH
-key login is unavailable, saves a device-specific NVRAM backup, installs the
-existing workstation public key, verifies SSH after reboot, and hands off to
-`set-router-mode.ps1`. A fresh bootstrap therefore performs two controlled
-reboots: one to enable SSH and one to apply and verify the selected WAN mode.
+identity through its LAN address, uses a minimal built-in Telnet client only
+when SSH key login is unavailable, saves a device-specific NVRAM backup,
+installs the existing workstation public key, starts and verifies SSH, and
+hands off to `set-router-mode.ps1`. A fresh initialization performs one
+controlled reboot to apply and verify the selected WAN mode.
 
 Run the initializer only from a directly connected, trusted LAN. Telnet sends
 the router password without transport encryption. The script holds the
 password as a PowerShell `SecureString`; it does not save it or put it in the
 process command line. It never copies a private key onto the router.
+
+If DD-WRT's MAC-clone option was previously enabled, preserve its old value
+outside Git and explicitly supply the router's physical identities while
+disabling it:
+
+```powershell
+.\set-router-mode.ps1 wifi `
+  -RouterAddress '<router-lan-ip>' `
+  -UpstreamSsid '<upstream-name>' `
+  -ClearMacClone `
+  -PhysicalRadioMac '<radio-mac>' `
+  -PhysicalWiredWanMac '<wired-wan-mac>'
+```
+
+The physical addresses are mandatory with `-ClearMacClone`; the script never
+guesses a vendor-specific MAC sequence. The pre-change backup is made before
+the clone values are altered.
 
 Every mode change creates and downloads a timestamped full NVRAM backup before
 committing, then reboots. By default the command waits for the router to go
@@ -129,6 +146,9 @@ The Wi-Fi mode stores two small one-shot hooks:
 The startup wait is bounded and exits. No custom monitor or polling daemon is
 installed; the only long-running DHCP process is DD-WRT's normal `udhcpc`.
 Both hooks are removed by `wired` mode.
+
+Wi-Fi mode refuses to commit if it would leave less than 2 KiB of NVRAM free.
+This protects feature-heavy firmware builds from a truncated NVRAM commit.
 
 The physical WAN cable may remain connected while fixed Wi-Fi mode is active;
 the configured WAN and default route use the radio. Run explicit `wired` mode
@@ -186,3 +206,5 @@ for the stale-wired-lease failure mode found on a second E4200 and the exact
 reason for the current boot ordering. The independent third-router repeat and
 the fresh-router wrapper are recorded in
 [`THREE-ROUTER-VALIDATION-2026-09-03.md`](THREE-ROUTER-VALIDATION-2026-09-03.md).
+The clone-to-physical-MAC recovery and NVRAM safety floor are documented in
+[`MAC-CLONE-CLEANUP-VALIDATION-2026-09-03.md`](MAC-CLONE-CLEANUP-VALIDATION-2026-09-03.md).

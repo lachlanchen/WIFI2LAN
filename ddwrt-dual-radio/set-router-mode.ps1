@@ -9,7 +9,9 @@ param(
     [string]$RouterAddress = '192.168.1.1',
     [string]$RouterUser = 'root',
     [string]$KeyPath = "$HOME\.ssh\astrill_lazy_router_ed25519",
+    [ValidatePattern('^wl[0-9]+$')]
     [string]$Radio = 'wl0',
+    [ValidatePattern('^[A-Za-z0-9._:-]+$')]
     [string]$WiredWanInterface = 'vlan2',
     [string]$BackupDirectory = "$HOME\RouterBackups\DD-WRT",
     [ValidateRange(30, 600)]
@@ -18,7 +20,12 @@ param(
     [int]$PostBootDelaySeconds = 60,
     [switch]$NoBackup,
     [switch]$NoReboot,
-    [switch]$NoWait
+    [switch]$NoWait,
+    [switch]$ClearMacClone,
+    [ValidatePattern('^(?i:[0-9a-f]{2}:){5}[0-9a-f]{2}$')]
+    [string]$PhysicalRadioMac,
+    [ValidatePattern('^(?i:[0-9a-f]{2}:){5}[0-9a-f]{2}$')]
+    [string]$PhysicalWiredWanMac
 )
 
 $ErrorActionPreference = 'Stop'
@@ -52,6 +59,12 @@ foreach ($path in @($SshExe, $ScpExe, $KeyPath, $RouterScript)) {
     }
 }
 
+if ($ClearMacClone -and
+    ([string]::IsNullOrWhiteSpace($PhysicalRadioMac) -or
+     [string]::IsNullOrWhiteSpace($PhysicalWiredWanMac))) {
+    throw 'ClearMacClone requires PhysicalRadioMac and PhysicalWiredWanMac.'
+}
+
 if ($Mode -ne 'status' -and -not $NoBackup) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $remoteBackup = "/tmp/before-router-mode-$stamp.bin"
@@ -68,6 +81,20 @@ if ($Mode -ne 'status' -and -not $NoBackup) {
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $localBackup).Hash
     Write-Host "Backup: $localBackup"
     Write-Host "SHA256: $hash"
+}
+
+if ($Mode -ne 'status' -and $ClearMacClone) {
+    $radioMacArg = ConvertTo-ShellLiteral $PhysicalRadioMac.ToUpperInvariant()
+    $wiredMacArg = ConvertTo-ShellLiteral $PhysicalWiredWanMac.ToUpperInvariant()
+    $radioKeyArg = ConvertTo-ShellLiteral "${Radio}_hwaddr"
+    Invoke-Ssh (
+        "nvram set mac_clone_enable=0; " +
+        "nvram set def_hwaddr=$wiredMacArg; " +
+        "nvram set fwifi_wired_mac=$wiredMacArg; " +
+        "nvram set $radioKeyArg=$radioMacArg; " +
+        "nvram commit"
+    )
+    Write-Host 'Disabled WAN MAC cloning and restored the supplied physical addresses.'
 }
 
 & $ScpExe -O -q -o BatchMode=yes -o StrictHostKeyChecking=accept-new `

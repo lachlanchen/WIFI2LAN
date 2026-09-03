@@ -208,6 +208,10 @@ case "$action" in
         setnv pppoe_ifname ""
         install_fixed_hooks
         clear_old_state
+        remaining="$(free_nvram)"
+        if [ -n "$remaining" ] && [ "$remaining" -lt 2048 ]; then
+            die "less than 2048 bytes of NVRAM would remain; changes were not committed"
+        fi
         nvram commit
         echo "Configured fixed Wi-Fi WAN on $wifi_if. Reboot is required."
         ;;
@@ -253,6 +257,7 @@ case "$action" in
         echo "second_radio_mac=$(nvget "${other}_hwaddr")"
         echo "virtual_ap=$(nvget "${vap}_ssid")"
         echo "second_ap=$(nvget "${other}_ssid")"
+        echo "mac_clone_enable=$(nvget mac_clone_enable)"
         echo "startup_hook=$(nvget rc_startup | grep -c '# ddwrt-fixed-wifi$' || true)"
         echo "firewall_hook=$(nvget rc_firewall | grep -c '# ddwrt-fixed-wifi$' || true)"
         radio_if="$(nvget "${radio}_ifname")"

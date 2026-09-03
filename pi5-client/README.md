@@ -67,3 +67,16 @@ sudo LAN_CIDR=192.168.50.1/24 ./pi5-client/install-pi5-wifi-to-lan.sh
 ```
 
 No Wi-Fi name, password, or account credential is stored in this repository.
+
+## Return Ethernet to a normal LAN client
+
+To remove the sharing role while preserving the active upstream Wi-Fi profile:
+
+```bash
+sudo ./pi5-client/reset-to-standard-network.sh
+```
+
+The reset first snapshots NetworkManager state under
+`/var/backups/simple-wifi-to-lan-reset/`, removes the shared Ethernet profile
+and any legacy mode-controller remnants, then activates an ordinary automatic
+IPv4/IPv6 Ethernet profile. SSH and VNC configuration are left unchanged.

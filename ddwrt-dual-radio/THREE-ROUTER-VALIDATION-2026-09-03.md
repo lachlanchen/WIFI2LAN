@@ -15,9 +15,9 @@ address, router LAN address, or device-specific backup is stored here.
 The Windows automation is split deliberately into two layers:
 
 1. `initialize-ddwrt-router.ps1` handles a fresh router. If the workstation
-   key is absent, it uses a paced Telnet login, downloads and validates a full
-   NVRAM backup, installs only the public SSH key, reboots, and verifies key
-   login.
+   key is absent, it negotiates a small native Telnet session, downloads and
+   validates a full NVRAM backup, installs only the public SSH key, starts SSH,
+   and verifies key login.
 2. `set-router-mode.ps1` is the normal idempotent interface. It uploads the
    router script, selects fixed Wi-Fi WAN or physical wired WAN, reboots, waits
    for the router and bounded DHCP startup, and prints live status.
@@ -25,9 +25,9 @@ The Windows automation is split deliberately into two layers:
    boot logic. It stores no upstream credential because this validated uplink
    is an open network.
 
-A fresh initialization uses two controlled reboots. Later mode switches need
-only the second layer and one reboot. There is no permanent Windows helper,
-router polling loop, or automatic cable monitor.
+A fresh initialization and later mode switches use one controlled reboot.
+There is no permanent Windows helper, router polling loop, or automatic cable
+monitor.
 
 ## Third-router result
 
