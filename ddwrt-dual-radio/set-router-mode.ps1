@@ -11,8 +11,13 @@ param(
     [string]$Radio = 'wl0',
     [string]$WiredWanInterface = 'vlan2',
     [string]$BackupDirectory = "$HOME\RouterBackups\DD-WRT",
+    [ValidateRange(30, 600)]
+    [int]$WaitTimeoutSeconds = 180,
+    [ValidateRange(0, 180)]
+    [int]$PostBootDelaySeconds = 60,
     [switch]$NoBackup,
-    [switch]$NoReboot
+    [switch]$NoReboot,
+    [switch]$NoWait
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,4 +93,35 @@ if ($Mode -ne 'status' -and -not $NoReboot) {
     & $SshExe -o BatchMode=yes -o ConnectTimeout=8 -i $KeyPath `
         "$RouterUser@$RouterAddress" reboot | Out-Null
     Write-Host 'The router normally takes about 60-120 seconds to return.'
+
+    if (-not $NoWait) {
+        $deadline = (Get-Date).AddSeconds($WaitTimeoutSeconds)
+        $sawOffline = $false
+        $online = $false
+        do {
+            Start-Sleep -Seconds 2
+            $online = Test-Connection -ComputerName $RouterAddress -Count 1 `
+                -Quiet -ErrorAction SilentlyContinue
+            if (-not $online) {
+                $sawOffline = $true
+            }
+            if ($sawOffline -and $online) {
+                break
+            }
+        } while ((Get-Date) -lt $deadline)
+
+        if (-not ($sawOffline -and $online)) {
+            throw "Router did not complete a down/up cycle within $WaitTimeoutSeconds seconds."
+        }
+
+        Write-Host "Router is reachable; allowing $PostBootDelaySeconds seconds for Wi-Fi DHCP and firewall startup..."
+        Start-Sleep -Seconds $PostBootDelaySeconds
+
+        & $ScpExe -O -q -i $KeyPath $RouterScript `
+            "${RouterUser}@${RouterAddress}:/tmp/configure-fixed-wifi-wan.sh"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Router returned, but the validation script upload failed (scp exit $LASTEXITCODE)."
+        }
+        Invoke-Ssh "sh /tmp/configure-fixed-wifi-wan.sh status $radioArg $wiredArg"
+    }
 }

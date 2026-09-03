@@ -46,6 +46,11 @@ From this directory:
 # First Wi-Fi-mode setup; quote the actual upstream name locally.
 .\set-router-mode.ps1 wifi -UpstreamSsid '<upstream-name>'
 
+# Target another router without changing the script.
+.\set-router-mode.ps1 wifi `
+  -RouterAddress '<router-lan-ip>' `
+  -UpstreamSsid '<upstream-name>'
+
 # Later returns to Wi-Fi mode can omit the name stored in router NVRAM.
 .\set-router-mode.ps1 wifi
 
@@ -57,8 +62,21 @@ From this directory:
 ```
 
 Every mode change creates and downloads a timestamped full NVRAM backup before
-committing, then reboots. Use `-NoBackup` or `-NoReboot` only for controlled
-diagnosis.
+committing, then reboots. By default the command waits for the router to go
+offline and return, allows the bounded Wi-Fi/DHCP startup to finish, uploads
+the read-only status helper again, and prints the verified state. This makes a
+normal mode change one command from backup through post-reboot validation.
+
+Use `-NoBackup`, `-NoReboot`, or `-NoWait` only for controlled diagnosis. The
+wait periods can be adjusted for unusually slow hardware:
+
+```powershell
+.\set-router-mode.ps1 wifi `
+  -RouterAddress '<router-lan-ip>' `
+  -UpstreamSsid '<upstream-name>' `
+  -WaitTimeoutSeconds 240 `
+  -PostBootDelaySeconds 90
+```
 
 The script copies the local 2.4 GHz AP configuration inside the router when
 changing roles. No Wi-Fi password or private upstream name is stored in this
@@ -78,11 +96,20 @@ reboot
 
 The Wi-Fi mode stores two small one-shot hooks:
 
-- a startup hook corrects DD-WRT's WAN identity after APSTA initializes and
-  reconciles the optional Astrill companion;
+- a startup hook runs before other custom startup lines, corrects DD-WRT's WAN
+  identity after APSTA initializes, recreates DD-WRT's DHCP callback, discards
+  any stale wired-WAN lease, launches `udhcpc` on the station interface, waits
+  a bounded time for its default route, and then reconciles the optional
+  Astrill companion;
 - a firewall hook restores LAN masquerading after firewall changes.
 
-Neither hook loops or polls. Both are removed by `wired` mode.
+The startup wait is bounded and exits. No custom monitor or polling daemon is
+installed; the only long-running DHCP process is DD-WRT's normal `udhcpc`.
+Both hooks are removed by `wired` mode.
+
+The physical WAN cable may remain connected while fixed Wi-Fi mode is active;
+the configured WAN and default route use the radio. Run explicit `wired` mode
+to use that cable again.
 
 ## Verification
 
@@ -93,7 +120,7 @@ sh /tmp/configure-fixed-wifi-wan.sh status wl0 vlan2
 wl -i "$(nvram get wl0_ifname)" status
 brctl show
 ip route
-iptables -t nat -S POSTROUTING
+iptables -t nat -L POSTROUTING -n -v
 ```
 
 Expected Wi-Fi-mode state:
@@ -130,3 +157,7 @@ reboot
 ```
 
 Never restore one router's NVRAM backup onto another router.
+
+See [`MULTI-ROUTER-VALIDATION-2026-09-03.md`](MULTI-ROUTER-VALIDATION-2026-09-03.md)
+for the stale-wired-lease failure mode found on a second E4200 and the exact
+reason for the current boot ordering.

@@ -127,13 +127,28 @@ $hook"
     fi
 }
 
+prepend_hook() {
+    var="$1"
+    marker="$2"
+    hook="$3"
+    old="$(nvget "$var")"
+    clean="$(printf '%s\n' "$old" | sed "/# $marker$/d")"
+    if [ -n "$clean" ]; then
+        setnv "$var" "$hook
+$clean"
+    else
+        setnv "$var" "$hook"
+    fi
+}
+
 install_fixed_hooks() {
     # DD-WRT may relabel wan_iface during APSTA startup. Correct it once after
-    # boot, start the optional companion, then restore client NAT. No daemon is
-    # left polling the router.
-    startup_hook='(sleep 30;R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;W="$(nvram get "${R}_ifname")";M="$(nvram get "${R}_hwaddr")";for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";restart firewall >/dev/null 2>&1||true;A=/tmp/astrill-lazy/alctl;if [ -x "$A" ];then "$A" start >/dev/null 2>&1||true;"$A" ensure >/dev/null 2>&1||true;"$A" start >/dev/null 2>&1||true;fi;for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE)& # ddwrt-fixed-wifi'
+    # boot, recreate DD-WRT's DHCP callback, renew on the station interface,
+    # start the optional companion, then restore client NAT. The bounded boot
+    # task exits; no daemon is left polling the router.
+    startup_hook='(sleep 30;R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;W="$(nvram get "${R}_ifname")";M="$(nvram get "${R}_hwaddr")";for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";ln -sf /sbin/rc /tmp/dhcpc;killall udhcpc >/dev/null 2>&1||true;ip -4 addr flush dev "$W";ip route del default >/dev/null 2>&1||true;udhcpc -i "$W" -p /var/run/udhcpc.pid -s /tmp/dhcpc >/tmp/fwifi-dhcp.log 2>&1&N=0;while [ "$N" -lt 15 ]&&! ip route|grep -q "^default .* dev $W";do sleep 2;N=$((N+1));done;restart firewall >/dev/null 2>&1||true;A=/tmp/astrill-lazy/alctl;if [ -x "$A" ];then "$A" start >/dev/null 2>&1||true;"$A" ensure >/dev/null 2>&1||true;"$A" start >/dev/null 2>&1||true;fi;for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE) # ddwrt-fixed-wifi'
     firewall_hook='R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;W="$(nvram get "${R}_ifname")";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE # ddwrt-fixed-wifi'
-    append_hook rc_startup ddwrt-fixed-wifi "$startup_hook"
+    prepend_hook rc_startup ddwrt-fixed-wifi "$startup_hook"
     append_hook rc_firewall ddwrt-fixed-wifi "$firewall_hook"
     remove_hook rc_startup ddwrt-dual-uplink
 }
@@ -190,6 +205,7 @@ case "$action" in
         setnv fwifi_radio "$radio"
         setnv fwifi_wired_mac "$wired_mac"
         set_wan "$wifi_if" "$wifi_mac"
+        setnv pppoe_ifname ""
         install_fixed_hooks
         clear_old_state
         nvram commit
@@ -215,6 +231,7 @@ case "$action" in
         lan_words="$(add_word "$wifi_if" $lan_words)"
         setnv lan_ifnames "$lan_words"
         set_wan "$wired_if" "$wired_mac"
+        setnv pppoe_ifname "$wired_if"
         remove_hook rc_startup ddwrt-fixed-wifi
         remove_hook rc_firewall ddwrt-fixed-wifi
         remove_hook rc_startup ddwrt-dual-uplink
@@ -229,15 +246,20 @@ case "$action" in
         validate_router
         echo "board=$(nvget DD_BOARD)"
         echo "configured_wan=$(nvget wan_iface)"
-        echo "default_route=$(ip route | sed -n '1p')"
+        echo "default_route=$(ip route | sed -n '/^default /p' | head -n 1)"
         echo "radio_mode=$(nvget "${radio}_mode")"
         echo "radio_interface=$(nvget "${radio}_ifname")"
+        echo "radio_mac=$(nvget "${radio}_hwaddr")"
+        echo "second_radio_mac=$(nvget "${other}_hwaddr")"
         echo "virtual_ap=$(nvget "${vap}_ssid")"
         echo "second_ap=$(nvget wl1_ssid)"
         echo "startup_hook=$(nvget rc_startup | grep -c '# ddwrt-fixed-wifi$' || true)"
         echo "firewall_hook=$(nvget rc_firewall | grep -c '# ddwrt-fixed-wifi$' || true)"
         radio_if="$(nvget "${radio}_ifname")"
-        echo "wifi_nat=$(iptables -t nat -S POSTROUTING | grep -c -- "-o $radio_if" || true)"
+        echo "radio_associated=$(wl -i "$radio_if" status 2>/dev/null | grep -c '^SSID:' || true)"
+        echo "wan_ipv4=$(ip -4 addr show dev "$radio_if" 2>/dev/null | sed -n 's/^[[:space:]]*inet \([^ ]*\).*/\1/p' | head -n 1)"
+        echo "dhcp_client=$(ps | grep "[u]dhcpc -i $radio_if " | wc -l)"
+        echo "wifi_nat=$(iptables -t nat -L POSTROUTING -n -v 2>/dev/null | grep -c " $radio_if " || true)"
         echo "nvram_free=$(free_nvram)"
         ;;
     *)

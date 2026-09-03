@@ -33,8 +33,10 @@ DD-WRT may rewrite its in-memory WAN identity during APSTA initialization even
 when DHCP and the default route correctly use the station interface. Two small
 hooks handle this without continuous work:
 
-1. A one-time startup task waits for the network, corrects the WAN identity,
-   reconciles the optional Astrill companion, and restores client NAT.
+1. A one-time startup task runs before other custom startup lines, waits for
+   APSTA, corrects the WAN identity, recreates DD-WRT's native DHCP callback,
+   launches `udhcpc` on the station interface, waits a bounded time for its
+   route, reconciles the optional Astrill companion, and restores client NAT.
 2. A firewall hook idempotently restores the LAN masquerade rule after a
    firewall rebuild.
 
@@ -87,3 +89,8 @@ This workstation preference is independent of the router mode script.
 
 No upstream SSID, password, authorization detail, or site-specific address is
 stored in this repository.
+
+The workflow was subsequently repeated on another E4200 while its physical
+WAN remained attached. That exposed and fixed a stale wired-lease boot race;
+see
+[`MULTI-ROUTER-VALIDATION-2026-09-03.md`](MULTI-ROUTER-VALIDATION-2026-09-03.md).

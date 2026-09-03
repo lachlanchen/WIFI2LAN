@@ -49,7 +49,7 @@ Internet / campus Wi-Fi
 | Component | Purpose | Target |
 | --- | --- | --- |
 | [`pi4-router/`](pi4-router/) | Install, verify, persist, and roll back the active Wi-Fi-to-LAN gateway | Raspberry Pi 4B, Raspberry Pi OS Buster |
-| [`pi5-client/`](pi5-client/) | Switch safely between LAN-client mode and the preserved `192.168.2.1` router mode | Raspberry Pi 5, Raspberry Pi OS Bookworm/Trixie |
+| [`pi5-client/`](pi5-client/) | Install a permanent NetworkManager Wi-Fi-to-LAN gateway at `192.168.23.1` | Raspberry Pi 5, Raspberry Pi OS Bookworm/Trixie |
 | [`ddwrt-dual-radio/`](ddwrt-dual-radio/) | Explicitly switch between a fixed Wi-Fi WAN and the ordinary wired WAN while preserving local Wi-Fi/LAN | Dual-radio Broadcom DD-WRT routers |
 | [`windows/repair-wired-dhcp.ps1`](windows/repair-wired-dhcp.ps1) | Restore and verify automatic IPv4/DNS after temporary static access | Windows 10/11, elevated PowerShell |
 
@@ -76,30 +76,44 @@ sudo tmux new-session -d -s pi4-router \
 After connecting the Pi to the downstream router WAN port, clients receive a
 `192.168.13.x` lease and use `192.168.13.1` as their gateway.
 
-## Pi 5 modes
+## Pi 5 quick start
 
-The Pi 5 mode switch deliberately keeps client and router roles mutually
-exclusive:
+Connect the Pi to its upstream Wi-Fi, then install the permanent shared
+Ethernet profile once:
 
 ```bash
 sudo ./pi5-client/install-pi5-wifi-to-lan.sh
-sudo pi5-network-mode status
-sudo pi5-network-mode verify
-sudo pi5-network-mode arm
 ```
 
-After `arm`, unplug `eth0` from the main LAN for at least five seconds and then
-connect it only to the downstream device. Direct router selection requires the
-explicit `wifi-router --confirm-isolated` form while `eth0` is unplugged. See
-[`pi5-client/README.md`](pi5-client/README.md) for the cutover and recovery
-interlocks.
+Move `eth0` to the downstream device or router WAN port after installation.
+It serves IPv4 at `192.168.23.1`, while `wlan0` remains an IPv4/IPv6 client.
+NetworkManager restores the same role automatically after reboot or link loss.
+See [`pi5-client/README.md`](pi5-client/README.md).
+
+## Dual-radio DD-WRT quick start
+
+For a compatible dual-radio Broadcom DD-WRT router with SSH key access, one
+Windows command now performs the backup, fixed-mode configuration, reboot,
+bounded startup wait, and post-boot status check:
+
+```powershell
+cd .\ddwrt-dual-radio
+.\set-router-mode.ps1 wifi `
+  -RouterAddress '<router-lan-ip>' `
+  -UpstreamSsid '<open-upstream-ssid>'
+```
+
+The 2.4 GHz physical radio becomes the station WAN while a virtual 2.4 GHz AP,
+the independent 5 GHz AP, and the wired LAN remain available. The physical
+WAN cable may remain attached but is ignored until explicit `wired` mode is
+selected. See [`ddwrt-dual-radio/README.md`](ddwrt-dual-radio/README.md).
 
 ## Current verified deployment
 
 | Device | Role | Management address | Upstream |
 | --- | --- | --- | --- |
 | Raspberry Pi 4B | Active Wi-Fi-to-LAN router | `192.168.13.1` | `wlan0` |
-| Raspberry Pi 5 | Main-LAN client | DHCP-assigned | `eth0` |
+| Raspberry Pi 5 | Persistent Wi-Fi-to-LAN router | `192.168.23.1` | `wlan0` |
 
 ## Support
 
