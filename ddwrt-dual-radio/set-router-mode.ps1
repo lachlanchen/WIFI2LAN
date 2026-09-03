@@ -5,6 +5,7 @@ param(
     [string]$Mode,
 
     [string]$UpstreamSsid,
+    [ValidatePattern('^[A-Za-z0-9._:-]+$')]
     [string]$RouterAddress = '192.168.1.1',
     [string]$RouterUser = 'root',
     [string]$KeyPath = "$HOME\.ssh\astrill_lazy_router_ed25519",
@@ -33,7 +34,8 @@ function ConvertTo-ShellLiteral {
 
 function Invoke-Ssh {
     param([Parameter(Mandatory = $true)][string]$Command)
-    & $script:SshExe -o BatchMode=yes -o ConnectTimeout=8 -i $KeyPath `
+    & $script:SshExe -o BatchMode=yes -o StrictHostKeyChecking=accept-new `
+        -o ConnectTimeout=8 -i $KeyPath `
         "$RouterUser@$RouterAddress" $Command
     if ($LASTEXITCODE -ne 0) {
         throw "SSH command failed with exit code $LASTEXITCODE."
@@ -55,7 +57,8 @@ if ($Mode -ne 'status' -and -not $NoBackup) {
     $remoteBackup = "/tmp/before-router-mode-$stamp.bin"
     New-Item -ItemType Directory -Force -Path $BackupDirectory | Out-Null
     Invoke-Ssh "nvram backup $remoteBackup"
-    & $ScpExe -O -q -i $KeyPath `
+    & $ScpExe -O -q -o BatchMode=yes -o StrictHostKeyChecking=accept-new `
+        -o ConnectTimeout=8 -i $KeyPath `
         "${RouterUser}@${RouterAddress}:$remoteBackup" $BackupDirectory
     if ($LASTEXITCODE -ne 0) {
         throw "Could not copy the NVRAM backup (scp exit $LASTEXITCODE)."
@@ -67,7 +70,8 @@ if ($Mode -ne 'status' -and -not $NoBackup) {
     Write-Host "SHA256: $hash"
 }
 
-& $ScpExe -O -q -i $KeyPath $RouterScript `
+& $ScpExe -O -q -o BatchMode=yes -o StrictHostKeyChecking=accept-new `
+    -o ConnectTimeout=8 -i $KeyPath $RouterScript `
     "${RouterUser}@${RouterAddress}:/tmp/configure-fixed-wifi-wan.sh"
 if ($LASTEXITCODE -ne 0) {
     throw "Could not upload the router script (scp exit $LASTEXITCODE)."
@@ -77,7 +81,7 @@ $radioArg = ConvertTo-ShellLiteral $Radio
 $wiredArg = ConvertTo-ShellLiteral $WiredWanInterface
 switch ($Mode) {
     'wifi' {
-        $ssidArg = ConvertTo-ShellLiteral $UpstreamSsid
+        $ssidArg = ConvertTo-ShellLiteral ([string]$UpstreamSsid)
         Invoke-Ssh "sh /tmp/configure-fixed-wifi-wan.sh wifi $ssidArg $radioArg $wiredArg"
     }
     'wired' {
@@ -90,7 +94,8 @@ switch ($Mode) {
 
 if ($Mode -ne 'status' -and -not $NoReboot) {
     Write-Host "Rebooting $RouterAddress..."
-    & $SshExe -o BatchMode=yes -o ConnectTimeout=8 -i $KeyPath `
+    & $SshExe -o BatchMode=yes -o StrictHostKeyChecking=accept-new `
+        -o ConnectTimeout=8 -i $KeyPath `
         "$RouterUser@$RouterAddress" reboot | Out-Null
     Write-Host 'The router normally takes about 60-120 seconds to return.'
 
@@ -117,7 +122,9 @@ if ($Mode -ne 'status' -and -not $NoReboot) {
         Write-Host "Router is reachable; allowing $PostBootDelaySeconds seconds for Wi-Fi DHCP and firewall startup..."
         Start-Sleep -Seconds $PostBootDelaySeconds
 
-        & $ScpExe -O -q -i $KeyPath $RouterScript `
+        & $ScpExe -O -q -o BatchMode=yes `
+            -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 `
+            -i $KeyPath $RouterScript `
             "${RouterUser}@${RouterAddress}:/tmp/configure-fixed-wifi-wan.sh"
         if ($LASTEXITCODE -ne 0) {
             throw "Router returned, but the validation script upload failed (scp exit $LASTEXITCODE)."

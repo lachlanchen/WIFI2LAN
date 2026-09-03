@@ -252,7 +252,7 @@ case "$action" in
         echo "radio_mac=$(nvget "${radio}_hwaddr")"
         echo "second_radio_mac=$(nvget "${other}_hwaddr")"
         echo "virtual_ap=$(nvget "${vap}_ssid")"
-        echo "second_ap=$(nvget wl1_ssid)"
+        echo "second_ap=$(nvget "${other}_ssid")"
         echo "startup_hook=$(nvget rc_startup | grep -c '# ddwrt-fixed-wifi$' || true)"
         echo "firewall_hook=$(nvget rc_firewall | grep -c '# ddwrt-fixed-wifi$' || true)"
         radio_if="$(nvget "${radio}_ifname")"

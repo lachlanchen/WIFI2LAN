@@ -92,9 +92,21 @@ See [`pi5-client/README.md`](pi5-client/README.md).
 
 ## Dual-radio DD-WRT quick start
 
-For a compatible dual-radio Broadcom DD-WRT router with SSH key access, one
-Windows command now performs the backup, fixed-mode configuration, reboot,
-bounded startup wait, and post-boot status check:
+For a fresh compatible dual-radio Broadcom DD-WRT router that still has
+Telnet access, the initializer backs up NVRAM, installs the workstation's
+existing public SSH key, configures fixed Wi-Fi WAN, reboots as needed, and
+checks the resulting state:
+
+```powershell
+cd .\ddwrt-dual-radio
+.\initialize-ddwrt-router.ps1 wifi `
+  -RouterAddress '<router-lan-ip>' `
+  -UpstreamSsid '<open-upstream-ssid>'
+```
+
+After SSH key access exists, the shorter repeatable mode command performs the
+backup, fixed-mode configuration, reboot, bounded startup wait, and post-boot
+status check:
 
 ```powershell
 cd .\ddwrt-dual-radio

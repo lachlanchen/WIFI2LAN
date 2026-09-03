@@ -43,6 +43,12 @@ The defaults are `wl0` for the uplink radio and `vlan2` for physical WAN.
 From this directory:
 
 ```powershell
+# First use on a fresh DD-WRT router that has Telnet but no SSH key yet.
+# The password is requested securely and is not stored in the command line.
+.\initialize-ddwrt-router.ps1 wifi `
+  -RouterAddress '<router-lan-ip>' `
+  -UpstreamSsid '<upstream-name>'
+
 # First Wi-Fi-mode setup; quote the actual upstream name locally.
 .\set-router-mode.ps1 wifi -UpstreamSsid '<upstream-name>'
 
@@ -60,6 +66,18 @@ From this directory:
 # Read-only status.
 .\set-router-mode.ps1 status
 ```
+
+`initialize-ddwrt-router.ps1` is the first-time wrapper. It checks the router
+identity through its LAN address, uses PuTTY Plink over Telnet only when SSH
+key login is unavailable, saves a device-specific NVRAM backup, installs the
+existing workstation public key, verifies SSH after reboot, and hands off to
+`set-router-mode.ps1`. A fresh bootstrap therefore performs two controlled
+reboots: one to enable SSH and one to apply and verify the selected WAN mode.
+
+Run the initializer only from a directly connected, trusted LAN. Telnet sends
+the router password without transport encryption. The script holds the
+password as a PowerShell `SecureString`; it does not save it or put it in the
+process command line. It never copies a private key onto the router.
 
 Every mode change creates and downloads a timestamped full NVRAM backup before
 committing, then reboots. By default the command waits for the router to go
@@ -81,6 +99,11 @@ wait periods can be adjusted for unusually slow hardware:
 The script copies the local 2.4 GHz AP configuration inside the router when
 changing roles. No Wi-Fi password or private upstream name is stored in this
 repository.
+
+Give every managed router a unique LAN subnet before connecting several of
+them to one workstation. Always pass `-RouterAddress` explicitly when the
+target is not the default router, and never restore one device's NVRAM backup
+onto another device.
 
 ## Router-only commands
 
@@ -160,4 +183,6 @@ Never restore one router's NVRAM backup onto another router.
 
 See [`MULTI-ROUTER-VALIDATION-2026-09-03.md`](MULTI-ROUTER-VALIDATION-2026-09-03.md)
 for the stale-wired-lease failure mode found on a second E4200 and the exact
-reason for the current boot ordering.
+reason for the current boot ordering. The independent third-router repeat and
+the fresh-router wrapper are recorded in
+[`THREE-ROUTER-VALIDATION-2026-09-03.md`](THREE-ROUTER-VALIDATION-2026-09-03.md).
