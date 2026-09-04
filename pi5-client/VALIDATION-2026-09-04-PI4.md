@@ -23,6 +23,8 @@ The Pi had a functional but overlapping legacy configuration:
 - ifupdown statically assigned `192.168.2.1/24` to `eth0`;
 - a system-wide dnsmasq instance provided downstream DHCP;
 - a boot-time oneshot service reconstructed routing state;
+- an even earlier pair of `bridge-start` and `bridge-stop` services reran a
+  package-install/configuration script during every boot and shutdown;
 - persistent iptables rules contained duplicate masquerade entries;
 - NetworkManager managed Wi-Fi but considered Ethernet unmanaged.
 
@@ -94,6 +96,19 @@ Verified live state:
   portal;
 - gateway ping showed 0% loss at 2 ms;
 - SSH port 22 and VNC display `:1` on TCP port 5901 remained reachable.
+
+An actual reboot then exposed the earliest `bridge-start`/`bridge-stop`
+services, which had recreated the removed ifupdown configuration and made
+Ethernet unmanaged again. The final installer now archives and disables both
+units before removing the recreated legacy files. Reboot validation must show
+`eth0:ethernet:connected:wifi-to-lan` and a live NetworkManager private dnsmasq.
+
+After removing those legacy units, the final installer was run again against
+the live Pi. It reported `eth0:ethernet:connected:wifi-to-lan`, retained the
+upstream dual-stack Wi-Fi client, exposed the scoped private dnsmasq and
+`nm-shared-eth0` NAT table, and passed gateway and HTTPS checks. The profile is
+autoconnecting, uses unlimited retry attempts, retains the permanent hardware
+MAC, and pins the known-good AP only on this stationary deployment.
 
 The exact pre-migration files are retained in timestamped backups on the Pi.
 The legacy implementation is also archived under `legacy/`, with the

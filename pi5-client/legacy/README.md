@@ -14,3 +14,8 @@ The repository copy replaces only its device-specific default Wi-Fi profile
 name with `upstream-wifi`; no password or Wi-Fi credential is archived.
 
 The matching service template deliberately uses an environment placeholder.
+
+The still earlier `bridge.sh` and its start/stop unit templates are also kept
+here because they explained a reboot-only regression during migration. They
+must not be enabled: the script performs package installation, rewrites network
+files, and appends firewall rules on every invocation.

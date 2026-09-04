@@ -43,6 +43,9 @@ def test_installer_preserves_active_wifi_as_dual_stack_client():
     source = text(INSTALLER)
     assert 'wifi_connection="$(nmcli -g GENERAL.CONNECTION device show "$WAN_IF")"' in source
     assert "802-11-wireless.powersave 2" in source
+    assert "connection.autoconnect-retries 0" in source
+    assert "802-11-wireless.cloned-mac-address permanent" in source
+    assert '802-11-wireless.bssid "$WIFI_BSSID"' in source
     assert "ipv4.method auto" in source
     assert "ipv6.method auto" in source
     for forbidden in ("wifi-sec.psk", "psk=", "password123"):
@@ -62,6 +65,8 @@ def test_installer_migrates_legacy_static_router_with_backup():
     source = text(INSTALLER)
     assert 'MIGRATE_LEGACY="${MIGRATE_LEGACY:-1}"' in source
     assert 'backup_path "$old_script" "$backup"' in source
+    assert 'backup_path "$old_bridge_script" "$backup"' in source
+    assert 'systemctl disable --now "$bridge_start_service" "$bridge_stop_service"' in source
     assert 'backup_path "$interfaces_file" "$backup"' in source
     assert 'backup_path "$dnsmasq_file" "$backup"' in source
     assert 'systemctl disable --now dnsmasq.service' in source

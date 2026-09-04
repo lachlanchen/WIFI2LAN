@@ -52,11 +52,13 @@ Internet / campus Wi-Fi
 | [`pi5-client/`](pi5-client/) | Install a permanent NetworkManager Wi-Fi-to-LAN gateway at `192.168.23.1` (or a chosen subnet) | Raspberry Pi 4/5, Raspberry Pi OS/Debian Bookworm+ |
 | [`ddwrt-dual-radio/`](ddwrt-dual-radio/) | Explicitly switch between a fixed Wi-Fi WAN and the ordinary wired WAN while preserving local Wi-Fi/LAN | Dual-radio Broadcom DD-WRT routers |
 | [`wr802n-openwrt/`](wr802n-openwrt/) | Configure the constrained TL-WR802N v1 as a disposable OpenWrt Wi-Fi-to-Ethernet gateway | OpenWrt 18.06.9 on TL-WR802N v1 |
-| [`windows/`](windows/) | Isolated adapter management, locked-down WR802N recovery TFTP, captive-portal authentication, and wired-DHCP repair | Windows 10/11 |
+| [`windows/`](windows/) | USB Wi-Fi stabilization, isolated adapter management, locked-down WR802N recovery TFTP, captive-portal authentication, and wired-DHCP repair | Windows 10/11 |
 | [`windows/repair-wired-dhcp.ps1`](windows/repair-wired-dhcp.ps1) | Restore and verify automatic IPv4/DNS after temporary static access | Windows 10/11, elevated PowerShell |
 
 Windows wired-LAN recovery and the 2026-08-30 root-cause record are documented
 in [`docs/windows-wired-lan-incident-2026-08-30.md`](docs/windows-wired-lan-incident-2026-08-30.md).
+The 2026-09-04 router, USB Wi-Fi, and Pi gateway checks are recorded in
+[`docs/network-validation-2026-09-04.md`](docs/network-validation-2026-09-04.md).
 
 ## Pi 4B quick start
 

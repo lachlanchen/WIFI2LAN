@@ -10,6 +10,7 @@ ROUTER_CONNECTION="${ROUTER_CONNECTION:-wifi-to-lan}"
 BACKUP_ROOT="${BACKUP_ROOT:-/var/backups/simple-wifi-to-lan}"
 ACTIVATE_CONNECTED="${ACTIVATE_CONNECTED:-0}"
 MIGRATE_LEGACY="${MIGRATE_LEGACY:-1}"
+WIFI_BSSID="${WIFI_BSSID:-}"
 
 die() {
     echo "ERROR: $*" >&2
@@ -84,6 +85,9 @@ disable_legacy_static_router() {
     local dnsmasq_file="/etc/dnsmasq.d/bridge.conf"
     local old_service="pi-wifi-to-lan-router-fix.service"
     local old_script="/home/lachlan/scripts/pi-wifi-to-lan-router-fix.sh"
+    local old_bridge_script="/home/lachlan/bridge.sh"
+    local bridge_start_service="bridge-start.service"
+    local bridge_stop_service="bridge-stop.service"
     local path
 
     [ "$MIGRATE_LEGACY" = 1 ] || return 0
@@ -91,6 +95,15 @@ disable_legacy_static_router() {
     # Migrate only the older layout created by this project's static-router
     # script. Every removed file is preserved under the timestamped backup.
     backup_path "$old_script" "$backup"
+    backup_path "$old_bridge_script" "$backup"
+    for path in "/etc/systemd/system/$bridge_start_service" \
+        "/etc/systemd/system/$bridge_stop_service"; do
+        backup_path "$path" "$backup"
+    done
+    systemctl disable --now "$bridge_start_service" "$bridge_stop_service" \
+        >/dev/null 2>&1 || true
+    rm -f "/etc/systemd/system/$bridge_start_service" \
+        "/etc/systemd/system/$bridge_stop_service"
     if systemctl list-unit-files "$old_service" --no-legend 2>/dev/null |
         grep -q "^$old_service"; then
         systemctl disable --now "$old_service" >/dev/null 2>&1 || true
@@ -185,12 +198,18 @@ install_router() {
 
     nmcli connection modify "$wifi_connection" \
         connection.autoconnect yes \
+        connection.autoconnect-retries 0 \
         connection.autoconnect-priority 999 \
         802-11-wireless.powersave 2 \
+        802-11-wireless.cloned-mac-address permanent \
         ipv4.method auto \
         ipv4.never-default no \
         ipv6.method auto \
         ipv6.never-default no
+    if [ -n "$WIFI_BSSID" ]; then
+        nmcli connection modify "$wifi_connection" \
+            802-11-wireless.bssid "$WIFI_BSSID"
+    fi
 
     if ! connection_exists "$ROUTER_CONNECTION"; then
         nmcli connection add type ethernet ifname "$LAN_IF" \

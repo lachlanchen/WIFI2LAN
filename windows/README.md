@@ -3,6 +3,27 @@
 These utilities support isolated router provisioning and recovery. Run them
 from an elevated PowerShell only when changing an adapter or firewall rule.
 
+## USB Wi-Fi compatibility mode
+
+`stabilize-usb-wifi.ps1` records the current adapter settings, disables the
+802.11ax mode that is troublesome on some low-cost USB adapters, and assigns a
+predictable route metric. It does not store an SSID, credential, MAC address,
+or BSSID in the repository:
+
+```powershell
+.\stabilize-usb-wifi.ps1 Apply `
+  -InterfaceAlias 'Wi-Fi' `
+  -ProfileName '<saved-profile>' `
+  -PreferredBssid '<optional-access-point-bssid>'
+
+.\stabilize-usb-wifi.ps1 Status
+.\stabilize-usb-wifi.ps1 Restore
+```
+
+If one upstream network alone disconnects an otherwise stable adapter, first
+confirm that the adapter's permanent hardware MAC is authorized by that
+network. Driver tuning cannot replace upstream authorization.
+
 ## Temporary TL-WR802N management route
 
 `wr802n-management.ps1` assigns a host-only address and `/32` route to one

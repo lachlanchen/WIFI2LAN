@@ -30,10 +30,13 @@ The installer automatically uses the Wi-Fi profile active on `wlan0`. It:
 - lets NetworkManager provide scoped DHCP, DNS, IPv4 forwarding, and NAT;
 - keeps IPv4 and IPv6 client service on `wlan0`;
 - disables Wi-Fi power saving;
+- keeps the Wi-Fi hardware MAC stable and retries autoconnection indefinitely;
 - disables other Ethernet profiles from autoconnecting;
 - removes the former multi-service mode/guard controller;
 - migrates this project's older ifupdown + global dnsmasq + iptables setup into
   the same timestamped backup before replacing it;
+- disables the earliest `bridge-start`/`bridge-stop` units, which otherwise
+  recreate that legacy setup during every boot and shutdown;
 - leaves SSH and VNC reachable from both upstream and downstream networks.
 
 The installer does not activate a DHCP server while `eth0` is visibly
@@ -81,6 +84,15 @@ sudo LAN_CIDR=192.168.50.1/24 ./pi5-client/install-pi5-wifi-to-lan.sh
 ```
 
 No Wi-Fi name, password, or account credential is stored in this repository.
+
+For a stationary Pi on a multi-access-point network that repeatedly steers it
+to a broken access point, the installer can pin one known-good BSSID:
+
+```bash
+sudo WIFI_BSSID='<known-good-ap-bssid>' ./pi5-client/install-pi5-wifi-to-lan.sh
+```
+
+Leave `WIFI_BSSID` unset normally so NetworkManager can roam.
 
 The historical `pi5-client` directory name remains for compatibility; this
 NetworkManager implementation is also validated on Raspberry Pi 4.

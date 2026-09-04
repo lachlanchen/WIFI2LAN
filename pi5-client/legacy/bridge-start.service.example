@@ -1,0 +1,11 @@
+[Unit]
+Description=Historical bridge.sh startup unit (do not enable)
+Wants=network.target
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/lachlan/bridge.sh
+
+[Install]
+WantedBy=multi-user.target
