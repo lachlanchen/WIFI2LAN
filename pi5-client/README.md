@@ -97,6 +97,35 @@ Leave `WIFI_BSSID` unset normally so NetworkManager can roam.
 The historical `pi5-client` directory name remains for compatibility; this
 NetworkManager implementation is also validated on Raspberry Pi 4.
 
+## Optional dual client/server role
+
+A Pi that is sometimes an ordinary client on an existing router LAN and
+sometimes a Wi-Fi-to-LAN server needs two mutually exclusive profiles. Install
+the lightweight selector once:
+
+```bash
+sudo ./pi5-client/install-dual-role.sh
+```
+
+Client mode is the safe installation default. It requests DHCP from the
+existing LAN and renews stale leases:
+
+```bash
+sudo pi5-ethernet-mode client
+```
+
+After moving the Ethernet cable away from the existing LAN and into the
+downstream device, enable the persistent server role:
+
+```bash
+sudo pi5-ethernet-mode server
+```
+
+Server mode refuses to start if the current upstream Ethernet gateway still
+answers. The selected role persists because the command changes which of the
+two NetworkManager profiles may autoconnect. There is no watcher, polling
+daemon, or automatic guess based on a transient cable state.
+
 ## Return Ethernet to a normal LAN client
 
 To remove the sharing role while preserving the active upstream Wi-Fi profile:

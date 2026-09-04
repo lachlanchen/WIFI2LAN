@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 INSTALLER = ROOT / "pi5-client" / "install-pi5-wifi-to-lan.sh"
 RESET = ROOT / "pi5-client" / "reset-to-standard-network.sh"
+DUAL_INSTALLER = ROOT / "pi5-client" / "install-dual-role.sh"
+MODE_SELECTOR = ROOT / "pi5-client" / "pi5-ethernet-mode.sh"
 
 
 def text(path: Path) -> str:
@@ -20,7 +22,7 @@ def test_pi5_shell_scripts_parse():
         bash = str(git_bash)
     if bash is None:
         return
-    for script in (INSTALLER, RESET):
+    for script in (INSTALLER, RESET, DUAL_INSTALLER, MODE_SELECTOR):
         subprocess.run(
             [bash, "-n", script.relative_to(ROOT).as_posix()],
             cwd=ROOT,
@@ -93,3 +95,17 @@ def test_reset_does_not_change_wifi_ssh_or_vnc_configuration():
     assert "sshd_config" not in source
     assert "wayvnc" not in source
     assert "raspi-config" not in source
+
+
+def test_dual_role_uses_mutually_exclusive_networkmanager_profiles():
+    installer = text(DUAL_INSTALLER)
+    selector = text(MODE_SELECTOR)
+    assert 'CLIENT_CONNECTION="${CLIENT_CONNECTION:-pi5-lan-client}"' in installer
+    assert 'SERVER_CONNECTION="${SERVER_CONNECTION:-wifi-to-lan}"' in installer
+    assert "ipv4.method auto" in installer
+    assert "ipv4.method shared" in installer
+    assert "ipv6.method disabled" in installer
+    assert 'connection.autoconnect no' in installer
+    assert 'ping -I "$LAN_IF"' in selector
+    assert 'nmcli --wait 30 connection up "$SERVER_CONNECTION"' in selector
+    assert 'nmcli --wait 30 connection up "$CLIENT_CONNECTION"' in selector

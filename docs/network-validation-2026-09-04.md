@@ -58,3 +58,18 @@ broken BSSID. BSSID pinning is opt-in because it trades roaming for stability.
 
 The downstream implementation remains one NetworkManager `shared` Ethernet
 profile. There is no custom boot poller or competing DHCP/NAT service.
+
+## Local terminal stale-lease recovery
+
+A separate Pi 5 remained reachable by IPv6 link-local at its known Ethernet
+MAC but disappeared from `192.168.70.131`. Its local web service on port 8090
+was healthy. The Pi's Ethernet client profile still held `192.168.1.100/24`
+and a dead `192.168.1.1` default gateway from a previously attached router.
+Reactivating only the NetworkManager client profile renewed DHCP and restored
+`192.168.70.131:8090` without rebooting the Pi or changing the router.
+
+The optional dual-role installer now provides two explicit, mutually exclusive
+profiles and a single `pi5-ethernet-mode` command. Client mode is the safe
+default; server mode is persistent when selected but refuses activation while
+an upstream Ethernet gateway answers. This preserves both roles without a
+background mode controller or simultaneous DHCP servers.
