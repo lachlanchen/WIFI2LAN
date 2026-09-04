@@ -1,4 +1,4 @@
-# Raspberry Pi 5: simple persistent Wi-Fi-to-LAN
+# Raspberry Pi 4/5: simple persistent Wi-Fi-to-LAN
 
 This setup is intentionally small. Run one installer once; NetworkManager
 then restores the router after every reboot and Ethernet link interruption.
@@ -15,8 +15,9 @@ forwarded.
 
 ## Install once
 
-First connect the Pi to the intended upstream Wi-Fi. While `eth0` is still
-available for management, run:
+This path is for Raspberry Pi OS or Debian systems where NetworkManager owns
+networking (Bookworm or newer). First connect the Pi to the intended upstream
+Wi-Fi. While `eth0` is still available for management, run:
 
 ```bash
 sudo ./pi5-client/install-pi5-wifi-to-lan.sh
@@ -31,6 +32,8 @@ The installer automatically uses the Wi-Fi profile active on `wlan0`. It:
 - disables Wi-Fi power saving;
 - disables other Ethernet profiles from autoconnecting;
 - removes the former multi-service mode/guard controller;
+- migrates this project's older ifupdown + global dnsmasq + iptables setup into
+  the same timestamped backup before replacing it;
 - leaves SSH and VNC reachable from both upstream and downstream networks.
 
 The installer does not activate a DHCP server while `eth0` is visibly
@@ -40,6 +43,17 @@ automatically and keeps doing so in the future.
 
 Do not reconnect this permanently shared Ethernet port to another LAN that
 already has a DHCP server.
+
+If `eth0` is already connected directly to the downstream computer/router and
+it is safe to start DHCP on that link, activate during installation:
+
+```bash
+sudo ACTIVATE_CONNECTED=1 LAN_CIDR=192.168.2.1/24 \
+  ./pi5-client/install-pi5-wifi-to-lan.sh
+```
+
+`ACTIVATE_CONNECTED=1` is deliberately explicit. Do not use it while `eth0`
+is connected to an existing LAN with another DHCP server.
 
 ## Check
 
@@ -67,6 +81,9 @@ sudo LAN_CIDR=192.168.50.1/24 ./pi5-client/install-pi5-wifi-to-lan.sh
 ```
 
 No Wi-Fi name, password, or account credential is stored in this repository.
+
+The historical `pi5-client` directory name remains for compatibility; this
+NetworkManager implementation is also validated on Raspberry Pi 4.
 
 ## Return Ethernet to a normal LAN client
 

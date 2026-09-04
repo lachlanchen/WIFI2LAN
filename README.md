@@ -12,9 +12,9 @@
 [![Sponsor](https://img.shields.io/badge/Sponsor-lachlanchen-EA4AAA?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/lachlanchen)
 
 WIFI2LAN turns a Raspberry Pi's Wi-Fi connection into a managed Ethernet
-uplink. It provides reproducible, reversible scripts for two real deployment
-roles: a Pi 4B gateway at `192.168.13.1`, and a Pi 5 that can safely switch
-between a normal LAN client and its preserved router configuration.
+uplink. It provides reproducible, reversible scripts for older Pi 4B systems
+and a simpler single-NetworkManager-profile path for Pi 4/5 systems running
+Bookworm or newer.
 
 ```text
 Internet / campus Wi-Fi
@@ -49,7 +49,7 @@ Internet / campus Wi-Fi
 | Component | Purpose | Target |
 | --- | --- | --- |
 | [`pi4-router/`](pi4-router/) | Install, verify, persist, and roll back the active Wi-Fi-to-LAN gateway | Raspberry Pi 4B, Raspberry Pi OS Buster |
-| [`pi5-client/`](pi5-client/) | Install a permanent NetworkManager Wi-Fi-to-LAN gateway at `192.168.23.1` | Raspberry Pi 5, Raspberry Pi OS Bookworm/Trixie |
+| [`pi5-client/`](pi5-client/) | Install a permanent NetworkManager Wi-Fi-to-LAN gateway at `192.168.23.1` (or a chosen subnet) | Raspberry Pi 4/5, Raspberry Pi OS/Debian Bookworm+ |
 | [`ddwrt-dual-radio/`](ddwrt-dual-radio/) | Explicitly switch between a fixed Wi-Fi WAN and the ordinary wired WAN while preserving local Wi-Fi/LAN | Dual-radio Broadcom DD-WRT routers |
 | [`wr802n-openwrt/`](wr802n-openwrt/) | Configure the constrained TL-WR802N v1 as a disposable OpenWrt Wi-Fi-to-Ethernet gateway | OpenWrt 18.06.9 on TL-WR802N v1 |
 | [`windows/`](windows/) | Isolated adapter management, locked-down WR802N recovery TFTP, captive-portal authentication, and wired-DHCP repair | Windows 10/11 |
@@ -78,7 +78,7 @@ sudo tmux new-session -d -s pi4-router \
 After connecting the Pi to the downstream router WAN port, clients receive a
 `192.168.13.x` lease and use `192.168.13.1` as their gateway.
 
-## Pi 5 quick start
+## Pi 4/5 NetworkManager quick start
 
 Connect the Pi to its upstream Wi-Fi, then install the permanent shared
 Ethernet profile once:
@@ -127,6 +127,7 @@ selected. See [`ddwrt-dual-radio/README.md`](ddwrt-dual-radio/README.md).
 | Device | Role | Management address | Upstream |
 | --- | --- | --- | --- |
 | Raspberry Pi 4B | Active Wi-Fi-to-LAN router | `192.168.13.1` | `wlan0` |
+| Raspberry Pi 4B (Bookworm) | Persistent NetworkManager gateway | `192.168.2.1` | `wlan0` |
 | Raspberry Pi 5 | Persistent Wi-Fi-to-LAN router | `192.168.23.1` | `wlan0` |
 
 ## Support

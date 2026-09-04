@@ -1,0 +1,16 @@
+[Unit]
+Description=Ensure Raspberry Pi Wi-Fi-to-LAN router settings
+Documentation=file:/home/lachlan/scripts/pi-wifi-to-lan-router-fix.sh
+Wants=network-online.target
+After=NetworkManager.service dnsmasq.service network-online.target
+
+[Service]
+Type=oneshot
+Environment=UPSTREAM_CONN=upstream-wifi
+Environment=WAN_IF=wlan0
+Environment=LAN_IF=eth0
+ExecStart=/home/lachlan/scripts/pi-wifi-to-lan-router-fix.sh apply
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

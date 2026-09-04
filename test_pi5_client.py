@@ -52,8 +52,23 @@ def test_installer_preserves_active_wifi_as_dual_stack_client():
 def test_installer_does_not_activate_dhcp_on_an_existing_lan():
     source = text(INSTALLER)
     assert 'cat "/sys/class/net/$LAN_IF/carrier"' in source
+    assert 'ACTIVATE_CONNECTED="${ACTIVATE_CONNECTED:-0}"' in source
+    assert '[ "$ACTIVATE_CONNECTED" = 1 ]' in source
     assert 'nmcli --wait 30 connection up "$ROUTER_CONNECTION"' in source
     assert "Move $LAN_IF from the existing LAN" in source
+
+
+def test_installer_migrates_legacy_static_router_with_backup():
+    source = text(INSTALLER)
+    assert 'MIGRATE_LEGACY="${MIGRATE_LEGACY:-1}"' in source
+    assert 'backup_path "$old_script" "$backup"' in source
+    assert 'backup_path "$interfaces_file" "$backup"' in source
+    assert 'backup_path "$dnsmasq_file" "$backup"' in source
+    assert 'systemctl disable --now dnsmasq.service' in source
+    assert 'nmcli device set "$LAN_IF" managed yes' in source
+    assert "systemctl restart NetworkManager.service" in source
+    assert 'GENERAL.NM-MANAGED device show "$LAN_IF"' in source
+    assert 'delete_iptables_rule nat POSTROUTING' in source
 
 
 def test_reset_snapshots_then_restores_ordinary_dhcp():
