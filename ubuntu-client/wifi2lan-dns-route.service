@@ -1,0 +1,17 @@
+[Unit]
+Description=Keep uplink DNS aligned with NetworkManager's preferred route
+After=NetworkManager.service systemd-resolved.service
+ConditionPathExists=/etc/wifi2lan-client.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/wifi2lan-sync-route-dns --config /etc/wifi2lan-client.json
+TimeoutStartSec=25
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RuntimeDirectory=wifi2lan-dns
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+ReadWritePaths=/run/wifi2lan-dns

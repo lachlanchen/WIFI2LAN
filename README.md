@@ -48,6 +48,7 @@ Internet / campus Wi-Fi
 
 | Component | Purpose | Target |
 | --- | --- | --- |
+| [`ubuntu-client/`](ubuntu-client/) | Prefer healthy Ethernet with Wi-Fi fallback and route-aware DNS | Ubuntu 24.04 client of two routers |
 | [`pi4-router/`](pi4-router/) | Install, verify, persist, and roll back the active Wi-Fi-to-LAN gateway | Raspberry Pi 4B, Raspberry Pi OS Buster |
 | [`pi5-client/`](pi5-client/) | Install a permanent NetworkManager Wi-Fi-to-LAN gateway at `192.168.23.1` (or a chosen subnet) | Raspberry Pi 4/5, Raspberry Pi OS/Debian Bookworm+ |
 | [`ddwrt-dual-radio/`](ddwrt-dual-radio/) | Explicitly switch between a fixed Wi-Fi WAN and the ordinary wired WAN while preserving local Wi-Fi/LAN | Dual-radio Broadcom DD-WRT routers |

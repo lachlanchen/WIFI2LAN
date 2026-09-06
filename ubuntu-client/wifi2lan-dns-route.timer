@@ -1,0 +1,11 @@
+[Unit]
+Description=Reconcile DNS after uplink and DHCP changes
+
+[Timer]
+OnBootSec=10
+OnUnitInactiveSec=5
+AccuracySec=1
+Unit=wifi2lan-dns-route.service
+
+[Install]
+WantedBy=timers.target
