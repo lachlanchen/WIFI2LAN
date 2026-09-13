@@ -34,6 +34,29 @@ was insufficient. Do not hide that failure by choosing an easier test URL.
 
 ## Safe installation
 
+When an untrusted Wi-Fi link must not take over a working Ethernet terminal,
+start with the saved Wi-Fi profile in management-only mode, **before** enabling
+or connecting its radio. Inspect and back up the selected profile first; these
+commands are for an IPv4 DHCP profile without manual routes or DNS:
+
+```bash
+nmcli connection modify uuid "$WIFI_UUID" connection.autoconnect no ipv4.never-default yes ipv4.ignore-auto-routes yes ipv4.ignore-auto-dns yes ipv6.method disabled
+nmcli radio wifi on
+nmcli --wait 30 connection up uuid "$WIFI_UUID" ifname "$WIFI_IF"
+ip -4 route show default
+ip -6 route show default
+resolvectl status
+```
+
+Leave the working Ethernet connection untouched. This Wi-Fi profile is for
+router management, not Internet fallback. Do not promote it until its
+authentication, DHCP, DNS, and sustained Internet checks have passed.
+For observed route flapping and why a single connectivity probe is insufficient
+evidence of session-safe failover, see the
+[September 13 investigation](../ddwrt-dual-radio/RADIO-AND-CLIENT-STABILITY-2026-09-13.md).
+The recipe below describes the earlier health-aware policy, not a guarantee
+against transient probe failures or NAT-path session loss.
+
 First inspect the topology. Keep the currently working management path:
 
 ```bash

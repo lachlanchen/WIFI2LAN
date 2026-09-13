@@ -11,6 +11,7 @@ Usage:
   configure-fixed-wifi-wan.sh status [RADIO] [WIRED_WAN_IF]
 
 Defaults: RADIO=wl0 and WIRED_WAN_IF=vlan2.
+The status action uses the saved fwifi_radio when RADIO is omitted.
 
 The wifi action assumes an open upstream network. It stores the upstream SSID
 in router NVRAM so a later `wifi` invocation may omit it. The wired action
@@ -62,6 +63,10 @@ free_nvram() {
 }
 
 validate_router() {
+    case "$radio" in wl0|wl1) ;; *) die "RADIO must be wl0 or wl1" ;; esac
+    case "$wired_if" in
+        ''|*[!A-Za-z0-9_.:-]*) die "invalid wired WAN interface" ;;
+    esac
     command -v nvram >/dev/null 2>&1 || die "nvram is unavailable"
     command -v wl >/dev/null 2>&1 || die "Broadcom wl is unavailable"
     [ -n "$(nvget DD_BOARD)" ] || die "DD-WRT board identity is unavailable"
@@ -70,6 +75,24 @@ validate_router() {
     [ "$radio" = wl1 ] && other=wl0
     [ -n "$(nvget "${other}_ifname")" ] ||
         die "a second radio is required to preserve a dedicated local AP"
+}
+
+validate_role_change() {
+    previous_radio="$(nvget fwifi_radio)"
+    case "$previous_radio" in
+        wl0|wl1)
+            if [ "$previous_radio" != "$radio" ] &&
+                [ "$(nvget "${previous_radio}_mode")" = apsta ]; then
+                die "restore wired mode on $previous_radio before changing the uplink radio to $radio"
+            fi
+            ;;
+    esac
+    for configured_vap in $(nvget "${radio}_vifs"); do
+        if [ "$configured_vap" = "$vap" ] &&
+            { [ "$previous_radio" != "$radio" ] || [ -z "$(nvget fwifi_ssid)" ]; }; then
+            die "$vap is an existing unmanaged virtual AP; preserve it before configuring wifi2lan"
+        fi
+    done
 }
 
 copy_ap_to_vap() {
@@ -168,6 +191,7 @@ case "$action" in
         wired_if="${4:-vlan2}"
         vap="${radio}.1"
         validate_router
+        validate_role_change
         [ -n "$upstream_ssid" ] || upstream_ssid="$(nvget fwifi_ssid)"
         [ -n "$upstream_ssid" ] || die "UPSTREAM_SSID is required the first time"
 
@@ -182,7 +206,7 @@ case "$action" in
         [ -n "$wired_mac" ] || die "wired WAN MAC is unavailable"
 
         [ "$(nvget "${radio}_mode")" = apsta ] || copy_ap_to_vap
-        setnv "${radio}_vifs" "$vap"
+        setnv "${radio}_vifs" "$(add_word "$vap" $(nvget "${radio}_vifs"))"
         setnv "${radio}_mode" apsta
         setnv "${radio}_ssid" "$upstream_ssid"
         setnv "${radio}_bridged" 0
@@ -220,6 +244,7 @@ case "$action" in
         wired_if="${3:-vlan2}"
         vap="${radio}.1"
         validate_router
+        validate_role_change
         wifi_if="$(nvget "${radio}_ifname")"
         wired_mac="$(nvget fwifi_wired_mac)"
         if [ -z "$wired_mac" ] && [ -r "/sys/class/net/$wired_if/address" ]; then
@@ -229,7 +254,7 @@ case "$action" in
         [ -n "$wired_mac" ] || die "wired WAN MAC is unavailable"
 
         copy_vap_to_ap
-        setnv "${radio}_vifs" ""
+        setnv "${radio}_vifs" "$(remove_word "$vap" $(nvget "${radio}_vifs"))"
         lan_words="$(nvget lan_ifnames)"
         lan_words="$(remove_word "$vap" $lan_words)"
         lan_words="$(add_word "$wifi_if" $lan_words)"
@@ -244,7 +269,8 @@ case "$action" in
         echo "Configured native wired WAN on $wired_if. Reboot is required."
         ;;
     status)
-        radio="${2:-wl0}"
+        radio="${2:-$(nvget fwifi_radio)}"
+        radio="${radio:-wl0}"
         wired_if="${3:-vlan2}"
         vap="${radio}.1"
         validate_router
@@ -253,6 +279,16 @@ case "$action" in
         echo "default_route=$(ip route | sed -n '/^default /p' | head -n 1)"
         echo "radio_mode=$(nvget "${radio}_mode")"
         echo "radio_interface=$(nvget "${radio}_ifname")"
+        echo "radio_configured_nband=$(nvget "${radio}_nband")"
+        echo "radio_configured_net_mode=$(nvget "${radio}_net_mode")"
+        echo "radio_band=$(wl -i "$(nvget "${radio}_ifname")" band 2>/dev/null || true)"
+        echo "radio_chanspec=$(wl -i "$(nvget "${radio}_ifname")" chanspec 2>/dev/null || true)"
+        echo "second_radio_interface=$(nvget "${other}_ifname")"
+        echo "second_radio_mode=$(nvget "${other}_mode")"
+        echo "second_radio_configured_nband=$(nvget "${other}_nband")"
+        echo "second_radio_configured_net_mode=$(nvget "${other}_net_mode")"
+        echo "second_radio_band=$(wl -i "$(nvget "${other}_ifname")" band 2>/dev/null || true)"
+        echo "second_radio_chanspec=$(wl -i "$(nvget "${other}_ifname")" chanspec 2>/dev/null || true)"
         echo "radio_mac=$(nvget "${radio}_hwaddr")"
         echo "second_radio_mac=$(nvget "${other}_hwaddr")"
         echo "virtual_ap=$(nvget "${vap}_ssid")"

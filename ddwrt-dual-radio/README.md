@@ -6,7 +6,7 @@ DD-WRT router:
 ```text
 upstream Wi-Fi -> 2.4 GHz station -> DD-WRT NAT -> LAN ports
                          +---------> 2.4 GHz virtual local AP
-second radio ----------------------> 5 GHz local AP
+second radio ----------------------> local AP (configure/verify 5 GHz)
 ```
 
 There is no cable monitor, polling daemon, or automatic failover. Choose one
@@ -15,6 +15,12 @@ mode explicitly:
 - `wifi`: use an open Wi-Fi network as WAN while keeping LAN and both local
   Wi-Fi networks.
 - `wired`: restore the ordinary physical wired-WAN topology.
+
+The second radio's existing band is preserved, not forced to 5 GHz. Verify its
+actual frequency; an SSID containing `5g` is only a name. A 2.4-only client
+adapter cannot connect to a 5 GHz AP. See the
+[September 13 radio/client review](RADIO-AND-CLIENT-STABILITY-2026-09-13.md)
+for the Ubuntu terminal protection and source-hardening tests.
 
 The optional Astrill companion is started and reconciled once after a Wi-Fi
 mode boot. VPN connection state remains controlled by Astrill itself.
@@ -37,6 +43,13 @@ nvram get wan_ifname
 ```
 
 The defaults are `wl0` for the uplink radio and `vlan2` for physical WAN.
+
+A bare router-side `status` command uses the saved `fwifi_radio`. Explicit
+radio arguments still take precedence. To change the uplink radio after a
+Wi-Fi-mode setup, first restore wired mode on the current radio using a wired
+management connection. The script refuses to leave the old radio in station
+mode or overwrite a pre-existing unmanaged `.1` virtual AP. Unrelated virtual
+APs are retained.
 
 ## Windows commands
 
