@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+
+# A distinct profile prevents an existing normal Chrome process taking the URL.
+exec /usr/local/bin/tao-run /usr/bin/google-chrome-stable \
+    --user-data-dir="$HOME/.config/google-chrome-tao" \
+    --class=chrome-tao --no-first-run --no-default-browser-check \
+    --no-proxy-server "$@"

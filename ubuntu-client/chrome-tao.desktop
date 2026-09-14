@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Chrome (Tao)
+Exec=/usr/local/bin/chrome-tao %U
+Icon=google-chrome
+Terminal=false
+Categories=Network;WebBrowser;
+StartupNotify=true
+StartupWMClass=chrome-tao

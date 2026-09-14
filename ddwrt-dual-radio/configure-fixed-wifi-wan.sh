@@ -169,8 +169,10 @@ install_fixed_hooks() {
     # boot, recreate DD-WRT's DHCP callback, renew on the station interface,
     # start the optional companion, then restore client NAT. The bounded boot
     # task exits; no daemon is left polling the router.
-    startup_hook='(sleep 30;R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;W="$(nvram get "${R}_ifname")";M="$(nvram get "${R}_hwaddr")";for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";ln -sf /sbin/rc /tmp/dhcpc;killall udhcpc >/dev/null 2>&1||true;ip -4 addr flush dev "$W";ip route del default >/dev/null 2>&1||true;udhcpc -i "$W" -p /var/run/udhcpc.pid -s /tmp/dhcpc >/tmp/fwifi-dhcp.log 2>&1&N=0;while [ "$N" -lt 15 ]&&! ip route|grep -q "^default .* dev $W";do sleep 2;N=$((N+1));done;restart firewall >/dev/null 2>&1||true;A=/tmp/astrill-lazy/alctl;if [ -x "$A" ];then "$A" start >/dev/null 2>&1||true;"$A" ensure >/dev/null 2>&1||true;"$A" start >/dev/null 2>&1||true;fi;for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE) # ddwrt-fixed-wifi'
-    firewall_hook='R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;W="$(nvram get "${R}_ifname")";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE # ddwrt-fixed-wifi'
+    # Some builds leave the managed VAP out of br0, preventing even WPA's
+    # EAPOL exchange. Reattach only our VAP at boot and firewall recovery.
+    startup_hook='(sleep 30;R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;brctl addif br0 "$R.1" >/dev/null 2>&1||true;W="$(nvram get "${R}_ifname")";M="$(nvram get "${R}_hwaddr")";for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";ln -sf /sbin/rc /tmp/dhcpc;killall udhcpc >/dev/null 2>&1||true;ip -4 addr flush dev "$W";ip route del default >/dev/null 2>&1||true;udhcpc -i "$W" -p /var/run/udhcpc.pid -s /tmp/dhcpc >/tmp/fwifi-dhcp.log 2>&1&N=0;while [ "$N" -lt 15 ]&&! ip route|grep -q "^default .* dev $W";do sleep 2;N=$((N+1));done;restart firewall >/dev/null 2>&1||true;A=/tmp/astrill-lazy/alctl;if [ -x "$A" ];then "$A" start >/dev/null 2>&1||true;"$A" ensure >/dev/null 2>&1||true;"$A" start >/dev/null 2>&1||true;fi;for K in wan_iface wan_ifname wan_ifname2 wan_ifnames;do nvram set "$K=$W";done;nvram set "wan_hwaddr=$M";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE) # ddwrt-fixed-wifi'
+    firewall_hook='R="$(nvram get fwifi_radio)";[ -n "$R" ]||R=wl0;brctl addif br0 "$R.1" >/dev/null 2>&1||true;W="$(nvram get "${R}_ifname")";L="$(nvram get lan_ipaddr)/$(nvram get lan_netmask)";iptables -t nat -C POSTROUTING -s "$L" -o "$W" -j MASQUERADE 2>/dev/null||iptables -t nat -A POSTROUTING -s "$L" -o "$W" -j MASQUERADE # ddwrt-fixed-wifi'
     prepend_hook rc_startup ddwrt-fixed-wifi "$startup_hook"
     append_hook rc_firewall ddwrt-fixed-wifi "$firewall_hook"
     remove_hook rc_startup ddwrt-dual-uplink
@@ -292,6 +294,11 @@ case "$action" in
         echo "radio_mac=$(nvget "${radio}_hwaddr")"
         echo "second_radio_mac=$(nvget "${other}_hwaddr")"
         echo "virtual_ap=$(nvget "${vap}_ssid")"
+        if [ -e "/sys/class/net/br0/brif/$vap" ]; then
+            echo "virtual_ap_bridged=yes"
+        else
+            echo "virtual_ap_bridged=no"
+        fi
         echo "second_ap=$(nvget "${other}_ssid")"
         echo "mac_clone_enable=$(nvget mac_clone_enable)"
         echo "startup_hook=$(nvget rc_startup | grep -c '# ddwrt-fixed-wifi$' || true)"

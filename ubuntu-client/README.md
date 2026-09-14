@@ -34,6 +34,10 @@ was insufficient. Do not hide that failure by choosing an easier test URL.
 
 ## Safe installation
 
+For an explicitly selected second router without global failover, see
+[Tao-only Chrome and per-app networking](TAO-APPS.md). This keeps the current
+default route and isolates selected apps on the secondary wired adapter.
+
 When an untrusted Wi-Fi link must not take over a working Ethernet terminal,
 start with the saved Wi-Fi profile in management-only mode, **before** enabling
 or connecting its radio. Inspect and back up the selected profile first; these

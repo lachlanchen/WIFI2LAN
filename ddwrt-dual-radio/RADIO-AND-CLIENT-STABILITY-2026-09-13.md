@@ -1,5 +1,11 @@
 # Radio and Ubuntu Client Review, 2026-09-13
 
+**Follow-up:** Tao was repaired through a second Ethernet adapter on September
+14. A missing VAP bridge membership was confirmed as the authentication fault,
+and Tao was migrated to a working 5 GHz uplink. See the
+[follow-up validation](TAO-5GHZ-VALIDATION-2026-09-14.md). The observations below
+describe the earlier state, not the current unresolved status.
+
 The existing checkout at `~/Projects/wifi2lan` was fast-forward checked against
 `lachlanchen/WIFI2LAN`; it was already at `8c69214` before this review.
 

@@ -73,6 +73,7 @@ esac
         return subprocess.run(['sh', str(SCRIPT), *args], env=env,
                               capture_output=True, text=True, timeout=10)
 
+    invoke.env = env
     return state, invoke
 
 
@@ -153,3 +154,22 @@ def test_existing_unmanaged_virtual_ap_is_not_overwritten(router, args):
     assert result.returncode != 0
     assert 'existing unmanaged virtual AP' in result.stderr
     assert state.read_bytes() == before
+
+
+@pytest.mark.parametrize('radio', ['wl0', 'wl1'])
+def test_firewall_recovery_reattaches_only_managed_virtual_ap(router, radio):
+    state, invoke = router
+    trace = state.parent / 'bridge-calls'
+    brctl = state.parent / 'bin/brctl'
+    brctl.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$TEST_BRIDGE_CALLS"\nexit 1\n')
+    brctl.chmod(0o755)
+    assert invoke('wifi', 'upstream', radio).returncode == 0
+    values = json.loads(state.read_text())
+    hook = values['rc_firewall']
+    for _ in range(2):
+        result = subprocess.run(['sh', '-eu', '-c', hook],
+                                env={**invoke.env, 'TEST_BRIDGE_CALLS': str(trace)},
+                                capture_output=True, text=True, timeout=5)
+        assert result.returncode == 0, result.stderr
+    assert trace.read_text().splitlines() == [f'addif br0 {radio}.1'] * 2
+    assert 'brctl addif br0 "$R.1"' in values['rc_startup']

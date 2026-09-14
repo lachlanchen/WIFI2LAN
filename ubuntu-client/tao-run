@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+if (( EUID == 0 )) || (( $# == 0 )); then
+    printf 'Usage as your desktop user: tao-run COMMAND [ARG ...]\n' >&2
+    exit 2
+fi
+executable=$(command -v -- "$1")
+[[ $executable == /* && -x $executable ]] || {
+    printf 'An external executable is required: %s\n' "$1" >&2
+    exit 2
+}
+shift
+sudo -n /usr/local/libexec/wifi2lan-app-network tao
+# Keep this shell alive so the helper can read its desktop environment.
+sudo -n /usr/local/libexec/astrill-lazy-netns launch \
+    tao "$UID" "$$" "$executable" "$@"

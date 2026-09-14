@@ -22,6 +22,12 @@ adapter cannot connect to a 5 GHz AP. See the
 [September 13 radio/client review](RADIO-AND-CLIENT-STABILITY-2026-09-13.md)
 for the Ubuntu terminal protection and source-hardening tests.
 
+The radio roles can also be reversed: **5 GHz uplink with a separate 2.4 GHz
+local AP and wired LAN**. See the
+[Tao 5 GHz validation and authentication repair](TAO-5GHZ-VALIDATION-2026-09-14.md)
+before attempting a transition. The script's default remains `wl0`; the
+verified Tao configuration explicitly uses `wl1`.
+
 The optional Astrill companion is started and reconciled once after a Wi-Fi
 mode boot. VPN connection state remains controlled by Astrill itself.
 
@@ -159,6 +165,10 @@ The Wi-Fi mode stores two small one-shot hooks:
 The startup wait is bounded and exits. No custom monitor or polling daemon is
 installed; the only long-running DHCP process is DD-WRT's normal `udhcpc`.
 Both hooks are removed by `wired` mode.
+
+The hooks also reattach the managed virtual AP to `br0`. On the validated
+firmware, omitting this bridge membership prevented WPA authentication even
+though the SSID and authentication daemon were present.
 
 Wi-Fi mode refuses to commit if it would leave less than 2 KiB of NVRAM free.
 This protects feature-heavy firmware builds from a truncated NVRAM commit.
