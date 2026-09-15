@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Terminal (Tao)
+Exec=/usr/local/bin/terminal-tao
+Icon=terminal-tao
+Terminal=false
+Categories=System;TerminalEmulator;
+StartupNotify=true

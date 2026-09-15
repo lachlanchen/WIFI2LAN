@@ -1,0 +1,15 @@
+#!/bin/bash
+set -uo pipefail
+
+if (( $# == 0 )); then
+    set -- /bin/bash --rcfile /usr/local/share/wifi2lan/tao.bashrc -i
+fi
+/usr/local/bin/tao-run "$@"
+result=$?
+if (( result != 0 )); then
+    printf '\nTao terminal exited with status %s. No default-network shell was started.\n' "$result" >&2
+    if [[ -t 0 ]]; then
+        read -r -p 'Press Enter to close this window. ' || true
+    fi
+fi
+exit "$result"

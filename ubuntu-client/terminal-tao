@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+# GNOME Terminal may reuse its host-side server. Isolate its child shell instead.
+exec /usr/bin/gnome-terminal --window --title='Terminal (Tao)' \
+    --role=terminal-tao --working-directory="${PWD:-$HOME}" \
+    -- /usr/local/bin/tao-shell "$@"
