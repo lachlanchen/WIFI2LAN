@@ -98,6 +98,39 @@ def test_preserve_unrelated_virtual_ap_and_hooks(router):
     assert values['rc_firewall'] == 'echo keep-firewall'
 
 
+@pytest.mark.parametrize('radio', ['wl0', 'wl1'])
+def test_repair_changed_parent_preserves_owned_secured_vap(router, radio):
+    state, invoke = router
+    assert invoke('wifi', 'upstream', radio).returncode == 0
+    values = json.loads(state.read_text())
+    vap = f'{radio}.1'
+    values[f'{vap}_wpa_psk'] = 'test-only-existing-passphrase'
+    values[f'{vap}_security_mode'] = 'psk2'
+    values[f'{vap}_akm'] = 'psk2'
+    values[f'{radio}_mode'] = 'ap'
+    values[f'{radio}_ssid'] = 'changed-parent'
+    state.write_text(json.dumps(values))
+    before_vap = {k: v for k, v in values.items() if k.startswith(vap + '_')}
+    assert 'radio_role_consistent=no' in invoke('status').stdout
+    assert invoke('wifi', 'upstream', radio).returncode == 0
+    after = json.loads(state.read_text())
+    assert {k: v for k, v in after.items() if k.startswith(vap + '_')} == before_vap
+    assert after[f'{radio}_mode'] == 'apsta'
+    assert after[f'{radio}_ssid'] == 'upstream'
+    assert 'radio_role_consistent=yes' in invoke('status').stdout
+
+
+def test_wired_to_wifi_copies_updated_local_ap_settings(router):
+    state, invoke = router
+    assert invoke('wifi', 'upstream', 'wl1').returncode == 0
+    assert invoke('wired', 'wl1').returncode == 0
+    values = json.loads(state.read_text())
+    values['wl1_ssid'] = 'updated-local-ap'
+    state.write_text(json.dumps(values))
+    assert invoke('wifi', 'upstream', 'wl1').returncode == 0
+    assert json.loads(state.read_text())['wl1.1_ssid'] == 'updated-local-ap'
+
+
 @pytest.mark.parametrize('action,args', [('wifi', ['upstream', 'wl1']), ('wired', ['wl1'])])
 def test_wrong_radio_cannot_leave_previous_uplink_running(router, action, args):
     state, invoke = router

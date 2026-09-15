@@ -207,7 +207,18 @@ case "$action" in
         [ -n "$wifi_mac" ] || die "wireless MAC is unavailable"
         [ -n "$wired_mac" ] || die "wired WAN MAC is unavailable"
 
-        [ "$(nvget "${radio}_mode")" = apsta ] || copy_ap_to_vap
+        # A GUI role change can leave our secured VAP beside an altered AP.
+        # Keep the owned, active VAP rather than copying changed parent settings.
+        keep_managed_vap=0
+        if [ "$(nvget fwifi_radio)" = "$radio" ] &&
+            [ -n "$(nvget fwifi_ssid)" ] && [ -n "$(nvget "${vap}_ssid")" ]; then
+            for existing_vap in $(nvget "${radio}_vifs"); do
+                [ "$existing_vap" != "$vap" ] || keep_managed_vap=1
+            done
+        fi
+        if [ "$(nvget "${radio}_mode")" != apsta ] && [ "$keep_managed_vap" -eq 0 ]; then
+            copy_ap_to_vap
+        fi
         setnv "${radio}_vifs" "$(add_word "$vap" $(nvget "${radio}_vifs"))"
         setnv "${radio}_mode" apsta
         setnv "${radio}_ssid" "$upstream_ssid"
@@ -280,6 +291,16 @@ case "$action" in
         echo "configured_wan=$(nvget wan_iface)"
         echo "default_route=$(ip route | sed -n '/^default /p' | head -n 1)"
         echo "radio_mode=$(nvget "${radio}_mode")"
+        echo "saved_uplink_radio=$(nvget fwifi_radio)"
+        echo "saved_uplink_ssid=$(nvget fwifi_ssid)"
+        if [ "$(nvget "${radio}_mode")" = apsta ] &&
+            [ "$(nvget "${radio}_ssid")" = "$(nvget fwifi_ssid)" ] &&
+            [ "$(nvget wan_iface)" = "$(nvget "${radio}_ifname")" ] &&
+            [ "$(nvget "${other}_mode")" = ap ]; then
+            echo "radio_role_consistent=yes"
+        else
+            echo "radio_role_consistent=no"
+        fi
         echo "radio_interface=$(nvget "${radio}_ifname")"
         echo "radio_configured_nband=$(nvget "${radio}_nband")"
         echo "radio_configured_net_mode=$(nvget "${radio}_net_mode")"

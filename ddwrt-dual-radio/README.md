@@ -28,6 +28,11 @@ local AP and wired LAN**. See the
 before attempting a transition. The script's default remains `wl0`; the
 verified Tao configuration explicitly uses `wl1`.
 
+For recovery from inconsistent radio settings, see the
+[September 15 uplink repair](TAO-UPLINK-RECOVERY-2026-09-15.md). Reapplying
+Wi-Fi mode now preserves an existing managed local VAP's security settings;
+`status` exposes radio-role consistency separately from connectivity.
+
 The optional Astrill companion is started and reconciled once after a Wi-Fi
 mode boot. VPN connection state remains controlled by Astrill itself.
 
