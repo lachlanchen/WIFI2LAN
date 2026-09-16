@@ -11,6 +11,12 @@ executable=$(command -v -- "$1")
     exit 2
 }
 shift
+# A Tao shell cannot see the host's physical NIC. Reuse the kernel namespace,
+# not the cosmetic prompt or an inherited environment marker.
+if [[ /proc/self/ns/net -ef /run/netns/al-tao ]]; then
+    printf 'al-tao: already active; reusing current network\n' >&2
+    exec "$executable" "$@"
+fi
 sudo -n /usr/local/libexec/wifi2lan-app-network tao
 # Keep this shell alive so the helper can read its desktop environment.
 # Restore the caller's PATH only after the helper drops to the desktop user.

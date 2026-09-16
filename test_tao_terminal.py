@@ -49,6 +49,7 @@ if args == ['-n', '/usr/local/libexec/wifi2lan-app-network', 'tao']:
 assert args[:4] == ['-n', '/usr/local/libexec/astrill-lazy-netns', 'launch', 'tao']
 assert int(args[4]) == os.getuid()
 assert args[6] == '/usr/bin/env'
+print('simulated-host-launch', file=sys.stderr)
 # Simulate the privileged helper's restricted environment after dropping UID.
 os.execve(args[6], args[6:], {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin'})
 ''')
@@ -59,9 +60,29 @@ os.execve(args[6], args[6:], {'PATH': '/usr/sbin:/usr/bin:/sbin:/bin'})
         'import json, os, sys; '
         'print(json.dumps([os.environ["PATH"], sys.argv[1:]])); '
         f'sys.exit({exit_code})', 'two words', 'literal;$HOME',
-    ], env={**os.environ, 'PATH': user_path}, text=True, capture_output=True)
+    ], env={**os.environ, 'PATH': user_path, 'WIFI2LAN_NETWORK': 'tao'},
+       text=True, capture_output=True)
     assert result.returncode == exit_code, result.stderr
+    assert 'simulated-host-launch' in result.stderr
     assert json.loads(result.stdout) == [user_path, ['two words', 'literal;$HOME']]
+
+
+@pytest.mark.skipif(os.environ.get('WIFI2LAN_TEST_LIVE_TAO') != '1',
+                    reason='opt-in: requires the installed, working Tao namespace')
+@pytest.mark.parametrize('exit_code', [0, 37])
+def test_nested_tao_run_reuses_real_namespace(exit_code):
+    namespace_inode = Path('/run/netns/al-tao').stat().st_ino
+    result = subprocess.run([
+        '/usr/local/bin/tao-run', '/usr/bin/env', 'WIFI2LAN_NETWORK=not-tao',
+        '/bin/bash', str(ROOT / 'tao-run'), '/usr/bin/python3', '-c',
+        'import json, os, sys; '
+        'print(json.dumps([os.stat("/proc/self/ns/net").st_ino, os.getuid(), sys.argv[1:]])); '
+        f'sys.exit({exit_code})', 'two words', 'literal;$HOME',
+    ], text=True, capture_output=True, timeout=60)
+    assert result.returncode == exit_code, result.stderr
+    assert 'already active; reusing current network' in result.stderr
+    assert json.loads(result.stdout) == [namespace_inode, os.getuid(),
+                                         ['two words', 'literal;$HOME']]
 
 
 def test_desktop_has_distinct_icon_and_uses_launcher():

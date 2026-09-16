@@ -78,8 +78,32 @@ esac
 The same idempotent guard is installed in 7090's `~/.bashrc`, so sourcing it also
 repairs an old shell. Other hosts can add the guard to their own Bash startup
 file. No router restart, namespace recreation, or host route change is needed.
-Reloading `.bashrc` may still reset the cosmetic `[tao]` prefix; `ip netns identify
-$$` is the namespace check (`al-tao` means the shell is already inside Tao).
+Reloading `.bashrc` may still reset the cosmetic `[tao]` prefix;
+`ip netns identify $$` is the namespace check (`al-tao` means the shell is
+already inside Tao).
+
+### Nested Tao Shells
+
+Calling `tao-shell` again while already in Tao used to fail at the physical-NIC
+lookup: that NIC exists only in the host namespace, not inside `al-tao`. This
+could look like an unplugged adapter after `.bashrc` removed the prompt marker.
+
+`tao-run` now compares `/proc/self/ns/net` with the mounted `/run/netns/al-tao`
+namespace. When they identify the same kernel object, it executes the command
+as the current unprivileged user in place, without sudo, DHCP preparation, or
+route changes. The check does not trust `WIFI2LAN_NETWORK` or the prompt text.
+From the ordinary desktop it still validates the physical adapter, gateway,
+and DNS before entering Tao; a genuinely unavailable adapter still fails closed.
+
+The opt-in live regression test checks nested launches, actual namespace/UID,
+argument quoting, misleading environment markers, and nonzero exit propagation:
+
+```bash
+WIFI2LAN_TEST_LIVE_TAO=1 python3 -m pytest -q test_tao_terminal.py
+```
+
+Run it as the desktop user on an installed, working Tao deployment. Default
+tests skip this network-dependent check.
 
 `tao-run` starts an external executable as the current desktop user inside a
 network namespace attached only to Tao. GUI apps that reuse an already-running
