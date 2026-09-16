@@ -13,5 +13,6 @@ executable=$(command -v -- "$1")
 shift
 sudo -n /usr/local/libexec/wifi2lan-app-network tao
 # Keep this shell alive so the helper can read its desktop environment.
+# Restore the caller's PATH only after the helper drops to the desktop user.
 sudo -n /usr/local/libexec/astrill-lazy-netns launch \
-    tao "$UID" "$$" "$executable" "$@"
+    tao "$UID" "$$" /usr/bin/env "PATH=$PATH" "$executable" "$@"

@@ -18,6 +18,7 @@ decisions; the app installer neither makes them nor restores previous routes.
 ```bash
 chrome-tao
 terminal-tao
+tao-shell  # Enter Tao in the existing terminal; exit returns to the parent shell.
 tao-run curl https://api.ipify.org
 tao-run firefox --no-remote --profile /absolute/path/to/a/separate/profile
 ```
@@ -48,6 +49,37 @@ invoking an existing normal browser process from this shell. Host-side tmux
 servers, containers, and other local service delegation require their own
 network configuration. The `[tao]` marker identifies the launch context; it
 is not a continuous connectivity indicator.
+
+### PATH Recovery (September 16)
+
+The namespace helper deliberately uses a restricted administrative `PATH`.
+Previously its `launch` action also passed that path into the unprivileged
+application, omitting `/usr/local/bin`. Reloading a user's `.bashrc` that only
+adds npm/user directories did not restore system-local launchers, so `tao-shell`
+became unavailable even though its file was installed.
+
+`tao-run` now passes the caller's `PATH` through `/usr/bin/env` **after** the
+helper switches to the desktop user. The privileged helper's own command search
+path is unchanged. This also preserves caller-selected nvm/Conda tool ordering
+for noninteractive child applications. Argument quoting and exit codes are
+covered by a regression test that simulates the restricted helper environment.
+
+For a shell already affected, use the absolute launcher path or add the missing
+directory once, retaining your existing PATH order:
+
+```bash
+case ":$PATH:" in
+    *":/usr/local/bin:"*) ;;
+    *) export PATH="${PATH:+$PATH:}/usr/local/bin" ;;
+esac
+/usr/local/bin/tao-shell
+```
+
+The same idempotent guard is installed in 7090's `~/.bashrc`, so sourcing it also
+repairs an old shell. Other hosts can add the guard to their own Bash startup
+file. No router restart, namespace recreation, or host route change is needed.
+Reloading `.bashrc` may still reset the cosmetic `[tao]` prefix; `ip netns identify
+$$` is the namespace check (`al-tao` means the shell is already inside Tao).
 
 `tao-run` starts an external executable as the current desktop user inside a
 network namespace attached only to Tao. GUI apps that reuse an already-running
