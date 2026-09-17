@@ -180,3 +180,37 @@ Do not blindly apply a whole Netplan backup over later unrelated changes.
 
 References: [NetworkManager1.46 connectivity checking](https://www.networkmanager.dev/docs/api/1.46.2/NetworkManager.conf.html#id-1.2.3.11),
 [systemd-resolved DNS routing](https://www.freedesktop.org/software/systemd/man/latest/systemd-resolved.service.html).
+
+## Troubleshooting: duplicate or colliding uplink profiles
+
+Keep exactly the two managed uplink profiles listed in
+`/etc/wifi2lan-client.json` — one per physical adapter. Extra profiles bound to
+the same NIC, or a profile whose generated Netplan id collides with another
+NIC's kernel name, cause default-route flapping that masquerades as an upstream
+outage.
+
+Two failure modes seen in practice on a two-router client:
+
+- **A stray `netplan-<ifname>` connection binding the wrong adapter.** This
+  host renders NetworkManager connections through Netplan
+  (`renderer: NetworkManager`). If a profile's generated file in
+  `/etc/netplan/` is keyed with a top-level `ethernets:` id equal to a
+  *different* adapter's kernel name (for example a Wi-Fi-uplink profile keyed
+  `enp0s31f6:` while it `match`es the USB adapter's MAC), Netplan can synthesize
+  a stray `netplan-enp0s31f6` connection on the wrong NIC and flap the default
+  route every connectivity interval. Fix it by recreating the profile so its
+  Netplan id is unique (NetworkManager's default `NM-<uuid>` naming is safe),
+  not the borrowed interface name. Recreate the *fallback* profile only while
+  the *primary* uplink carries traffic, so the working route is never dropped.
+
+- **A duplicate management profile racing the internet profile.** A
+  never-default "management-only" profile on the same adapter as the metric-600
+  fallback can win the DHCP transaction at connect time before the intended
+  profile activates. Keep one profile per adapter; delete the leftover with
+  `nmcli connection delete uuid <UUID>` (safe while it is inactive), then
+  confirm the live default route and Internet are unchanged.
+
+Do not constrain a fallback profile to a subnet to "protect" it; a client
+adapter briefly patched into a retired address range (a stale `192.168.1.0/24`
+lease from an old router, say) is a cabling artifact, not a profile bug, and
+resolves once it is on the correct router.
