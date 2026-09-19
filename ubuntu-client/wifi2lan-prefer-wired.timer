@@ -1,0 +1,11 @@
+[Unit]
+Description=Re-assert the preferred wired uplink shortly after boot and periodically
+
+[Timer]
+OnBootSec=20
+OnUnitInactiveSec=30
+AccuracySec=5
+Unit=wifi2lan-prefer-wired.service
+
+[Install]
+WantedBy=timers.target

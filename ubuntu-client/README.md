@@ -214,3 +214,33 @@ Do not constrain a fallback profile to a subnet to "protect" it; a client
 adapter briefly patched into a retired address range (a stale `192.168.1.0/24`
 lease from an old router, say) is a cabling artifact, not a profile bug, and
 resolves once it is on the correct router.
+
+## Optional: keep the wired (non-VPN) uplink preferred
+
+If the wired profile is ever downed with `nmcli connection down` (or
+`device disconnect`), NetworkManager blocks its autoconnect until an explicit
+`up` or a fresh carrier bounce. With the cable still plugged in, the host is
+then silently stranded on the metric-600 fallback (which here runs a VPN and is
+slower for latency-sensitive traffic such as UU Remote), even though
+`autoconnect=yes`.
+
+`wifi2lan-prefer-wired.service`/`.timer` closes that gap with a minimal check:
+every ~30 s, if the wired interface has carrier but is not connected, it runs
+`nmcli connection up Wired-Primary`. It only brings the wired profile up — it
+never touches the fallback/VPN uplink, so it cannot drop a fallback-routed
+terminal, and re-upping an already-connected profile is a no-op. If the wired
+WAN is unhealthy, NetworkManager's connectivity penalty still keeps the
+fallback preferred.
+
+The unit hard-codes interface `enp0s31f6` and connection `Wired-Primary`; edit
+the `ExecStart` line if yours differ. Install:
+
+```bash
+sudo install -m 644 wifi2lan-prefer-wired.service wifi2lan-prefer-wired.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now wifi2lan-prefer-wired.timer
+```
+
+To pause it during deliberate maintenance, `sudo systemctl stop
+wifi2lan-prefer-wired.timer`; to remove it, disable the timer and delete both
+unit files.
